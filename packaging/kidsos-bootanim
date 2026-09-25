@@ -1,0 +1,166 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+KidsOS - animasi boot di framebuffer (/dev/fb0), tanpa Plymouth.
+
+    kidsos-bootanim --prepare GIF   (root, saat install) siapkan frame untuk
+                                    resolusi layar ini -> /var/lib/kidsos/bootanim
+    kidsos-bootanim                 (root, saat boot) putar animasi sampai
+                                    layar menu (Xorg) muncul, maks. 120 detik
+
+Plymouth di Debian wajib systemd, sedangkan antiX tanpa systemd; jadi frame
+GIF digambar sendiri langsung ke framebuffer. Mode putar hanya memakai
+pustaka standar Python agar bisa berjalan sangat awal saat boot.
+"""
+
+import glob
+import os
+import sys
+import time
+
+CACHE = "/var/lib/kidsos/bootanim"
+FB = "/sys/class/graphics/fb0"
+MAX_SECONDS = 120
+
+
+def fb_info():
+    with open(f"{FB}/virtual_size") as f:
+        w, h = (int(v) for v in f.read().strip().split(","))
+    with open(f"{FB}/bits_per_pixel") as f:
+        bpp = int(f.read())
+    try:
+        with open(f"{FB}/stride") as f:
+            stride = int(f.read())
+    except OSError:
+        stride = w * bpp // 8
+    return w, h, bpp, stride
+
+
+# ---------------------------------------------------------------- prepare
+def prepare(gif):
+    """Render latar & frame (format XRGB8888) memakai PyQt5 tanpa layar."""
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+    from PyQt5.QtCore import Qt, QRect
+    from PyQt5.QtGui import (QColor, QFont, QGuiApplication, QImage, QImageReader,
+                             QLinearGradient, QPainter)
+
+    w, h, bpp, _stride = fb_info()
+    if bpp != 32:
+        sys.exit(f"kidsos-bootanim: framebuffer {bpp} bpp tidak didukung (butuh 32)")
+    app = QGuiApplication(["kidsos-bootanim"])  # noqa: F841 (dibutuhkan QPainter/font)
+
+    out = os.path.join(CACHE, f"{w}x{h}")
+    os.makedirs(out, exist_ok=True)
+    for old in glob.glob(os.path.join(out, "*")):
+        os.remove(old)
+
+    # Latar: gradasi krem-biru + tulisan.
+    bg = QImage(w, h, QImage.Format_RGB32)
+    p = QPainter(bg)
+    grad = QLinearGradient(0, 0, w, h)
+    grad.setColorAt(0, QColor("#FFF6E5"))
+    grad.setColorAt(0.5, QColor("#FFEFF6"))
+    grad.setColorAt(1, QColor("#E9F6FF"))
+    p.fillRect(bg.rect(), grad)
+    font = QFont("DejaVu Sans")
+    font.setBold(True)
+    font.setPixelSize(max(18, h // 22))
+    p.setFont(font)
+    p.setPen(QColor("#3B2F5C"))
+    p.drawText(QRect(0, int(h * 0.78), w, h // 10), Qt.AlignCenter,
+               "Dunia Bermain & Belajar sedang disiapkan...")
+    p.end()
+    with open(os.path.join(out, "bg.raw"), "wb") as f:
+        f.write(bytes(bg.constBits().asarray(bg.byteCount())))
+
+    # Frame animasi, diperbesar agar tingginya ±45% layar, di tengah.
+    reader = QImageReader(gif)
+    size = reader.size()
+    scale = (h * 0.45) / max(1, size.height())
+    fw, fh = int(size.width() * scale), int(size.height() * scale)
+    x0, y0 = (w - fw) // 2, int(h * 0.30) - fh // 3
+    y0 = max(0, min(h - fh, y0))
+    delays = []
+    k = 0
+    while True:
+        frame = reader.read()
+        if frame.isNull():
+            break
+        tile = bg.copy(x0, y0, fw, fh)
+        p = QPainter(tile)
+        p.setRenderHint(QPainter.SmoothPixmapTransform)
+        # Kartu putih bulat agar latar putih GIF terlihat disengaja.
+        p.setPen(Qt.NoPen)
+        p.setBrush(QColor("#FFFFFF"))
+        p.drawRoundedRect(tile.rect(), fw * 0.08, fw * 0.08)
+        p.drawImage(tile.rect().adjusted(fw // 20, fh // 20, -fw // 20, -fh // 20),
+                    frame.convertToFormat(QImage.Format_ARGB32))
+        p.end()
+        with open(os.path.join(out, f"frame-{k:03d}.raw"), "wb") as f:
+            f.write(bytes(tile.constBits().asarray(tile.byteCount())))
+        delays.append(max(40, reader.nextImageDelay() or 100))
+        k += 1
+    with open(os.path.join(out, "info"), "w") as f:
+        f.write(f"{x0} {y0} {fw} {fh} {sum(delays) // max(1, len(delays))}\n")
+    print(f"kidsos-bootanim: {k} frame disiapkan untuk layar {w}x{h}")
+
+
+# ------------------------------------------------------------------- play
+def xorg_running():
+    for pid in os.listdir("/proc"):
+        if pid.isdigit():
+            try:
+                with open(f"/proc/{pid}/comm") as f:
+                    if f.read().strip() in ("Xorg", "X"):
+                        return True
+            except OSError:
+                pass
+    return False
+
+
+def play():
+    try:
+        w, h, bpp, stride = fb_info()
+    except OSError:
+        return
+    folder = os.path.join(CACHE, f"{w}x{h}")
+    frames = sorted(glob.glob(os.path.join(folder, "frame-*.raw")))
+    if bpp != 32 or not frames:
+        return
+    with open(os.path.join(folder, "info")) as f:
+        x0, y0, fw, fh, delay = (int(v) for v in f.read().split())
+    data = []
+    for path in frames:
+        with open(path, "rb") as f:
+            data.append(f.read())
+    row = w * 4
+    fd = os.open("/dev/fb0", os.O_WRONLY)
+    try:
+        with open(os.path.join(folder, "bg.raw"), "rb") as f:
+            bg = f.read()
+        for y in range(h):
+            os.pwrite(fd, bg[y * row:(y + 1) * row], y * stride)
+        del bg
+        start = time.monotonic()
+        k = 0
+        while time.monotonic() - start < MAX_SECONDS:
+            if k % 10 == 0 and xorg_running():
+                break
+            frame = data[k % len(data)]
+            line = fw * 4
+            for y in range(fh):
+                os.pwrite(fd, frame[y * line:(y + 1) * line], (y0 + y) * stride + x0 * 4)
+            k += 1
+            time.sleep(delay / 1000.0)
+    finally:
+        os.close(fd)
+
+
+if __name__ == "__main__":
+    if len(sys.argv) >= 3 and sys.argv[1] == "--prepare":
+        prepare(sys.argv[2])
+    else:
+        try:
+            play()
+        except (OSError, ValueError):
+            pass    # animasi boot tidak boleh mengganggu proses boot

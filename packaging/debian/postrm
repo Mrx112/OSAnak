@@ -1,0 +1,11 @@
+#!/bin/sh
+# purge: hapus juga konfigurasi & password Mode Admin.
+set -e
+
+case "$1" in
+    purge)
+        rm -rf /etc/kidsos
+        ;;
+esac
+
+exit 0

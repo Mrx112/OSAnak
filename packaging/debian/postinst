@@ -1,0 +1,15 @@
+#!/bin/sh
+# Setelah paket terpasang/diperbarui: aktifkan KidsOS.
+# Pemasangan pertama menanyakan password Mode Admin (lewat terminal).
+set -e
+
+case "$1" in
+    configure)
+        mkdir -p /etc/kidsos
+        /usr/sbin/kidsos-setup enable || {
+            echo "[KidsOS] Aktivasi gagal. Perbaiki lalu jalankan: sudo kidsos-setup enable" >&2
+        }
+        ;;
+esac
+
+exit 0

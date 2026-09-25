@@ -1,0 +1,116 @@
+#!/bin/sh
+# KidsOS - helper root, dipanggil launcher lewat sudo (tanpa password).
+#
+#   kidsos-pkg check-auth         hanya periksa login admin
+#   kidsos-pkg install PAKET...   pasang paket apt yang dibutuhkan menu
+#   kidsos-pkg upgrade-self       perbarui KidsOS dari repository resmi
+#
+# SETIAP perintah wajib membawa login akun admin Linux lewat stdin:
+#   baris 1 = username, baris 2 = password
+# Hanya root atau anggota grup sudo/wheel yang diterima; password diperiksa
+# di sini (sebagai root) dengan unix_chkpwd, mekanisme yang sama dengan login
+# Linux. Jadi walaupun user anak boleh menjalankan skrip ini lewat sudo tanpa
+# password, skrip ini menolak bekerja tanpa password admin yang benar.
+#
+# Argumen divalidasi ketat. Sumber upgrade diambil dari REPO_URL di
+# /etc/kidsos/kidsos.conf (milik root), tidak pernah dari argumen.
+set -eu
+
+CONF=/etc/kidsos/kidsos.conf
+INSTALL_DIR=/opt/kidsos
+REPO_URL=https://github.com/Mrx112/OSAnak
+REPO_BRANCH=main
+[ -r "$CONF" ] && . "$CONF"
+
+export DEBIAN_FRONTEND=noninteractive
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+
+die() { echo "kidsos-pkg: $*" >&2; exit 2; }
+
+deny() {
+    sleep 3                      # perlambat tebak-tebakan password
+    echo "kidsos-pkg: login admin ditolak" >&2
+    exit 3
+}
+
+is_admin() {
+    [ "$1" = root ] && return 0
+    id -nG "$1" 2>/dev/null | tr ' ' '\n' | grep -qxE 'sudo|wheel'
+}
+
+password_ok() {   # $1 = user, $2 = password
+    chk=""
+    for c in /sbin/unix_chkpwd /usr/sbin/unix_chkpwd; do
+        [ -x "$c" ] && chk=$c && break
+    done
+    [ -n "$chk" ] || die "unix_chkpwd tidak ditemukan (paket libpam-modules-bin)"
+    # unix_chkpwd membaca password dari stdin (diakhiri NUL); keluar 0 = benar.
+    printf '%s\000' "$2" | "$chk" "$1" nonull >/dev/null 2>&1
+}
+
+require_admin() {
+    IFS= read -r auth_user || deny
+    IFS= read -r auth_pass || [ -n "${auth_pass:-}" ] || deny
+    case "$auth_user" in
+        ""|-*|*[!a-z0-9_.-]*) deny ;;
+    esac
+    getent passwd "$auth_user" >/dev/null || deny
+    is_admin "$auth_user" || deny
+    password_ok "$auth_user" "$auth_pass" || deny
+    auth_pass=""
+    logger -t kidsos "login admin '$auth_user' untuk: $*" 2>/dev/null || true
+}
+
+cmd_install() {
+    [ $# -gt 0 ] || die "tidak ada paket"
+    for p in "$@"; do
+        case "$p" in
+            ""|-*|*[!a-z0-9.+-]*) die "nama paket tidak valid: $p" ;;
+        esac
+    done
+    apt-get update -q || true
+    apt-get install -y -q "$@"
+}
+
+cmd_upgrade_self() {
+    # https://github.com/USER/REPO(.git) -> https://raw.githubusercontent.com/USER/REPO/BRANCH
+    raw=$(printf '%s' "$REPO_URL" | sed -E \
+        's#/+$##; s#\.git$##; s#^https?://github\.com/#https://raw.githubusercontent.com/#')
+    raw="$raw/$REPO_BRANCH"
+    tmp=$(mktemp -d)
+    trap 'rm -rf "$tmp"' EXIT
+    mkdir -p "$tmp/content"
+
+    for f in main.py activities.py games.py sounds.py content/cerita.json; do
+        if command -v curl >/dev/null 2>&1; then
+            curl -fsSL --max-time 60 -o "$tmp/$f" "$raw/$f"
+        else
+            wget -q -T 60 -O "$tmp/$f" "$raw/$f"
+        fi
+    done
+
+    # Tolak file rusak / bukan Python sebelum menimpa versi yang berjalan.
+    python3 -m py_compile "$tmp/main.py" "$tmp/activities.py" "$tmp/games.py" \n        "$tmp/sounds.py"
+    python3 -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8"))' \
+        "$tmp/content/cerita.json"
+
+    install -m 644 "$tmp/activities.py" "$INSTALL_DIR/activities.py"
+    install -m 644 "$tmp/games.py" "$INSTALL_DIR/games.py"
+    install -m 644 "$tmp/sounds.py" "$INSTALL_DIR/sounds.py"
+    install -m 644 "$tmp/content/cerita.json" "$INSTALL_DIR/content/cerita.json"
+    install -m 755 "$tmp/main.py" "$INSTALL_DIR/main.py"
+    # Suara baru (jika VERSION di sounds.py berubah) dibuat ulang sekarang.
+    python3 "$INSTALL_DIR/sounds.py" --generate "$INSTALL_DIR/sounds" >/dev/null || true
+    echo "KidsOS diperbarui dari $raw"
+}
+
+case "${1:-}" in
+    check-auth|install|upgrade-self) require_admin "$@" ;;
+    *) die "perintah tidak dikenal: ${1:-}" ;;
+esac
+
+case "$1" in
+    check-auth) exit 0 ;;
+    install) shift; cmd_install "$@" ;;
+    upgrade-self) cmd_upgrade_self ;;
+esac

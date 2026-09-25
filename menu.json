@@ -1,0 +1,86 @@
+{
+  "name": "Menu KidsOS",
+  "items": [
+    {
+      "emoji": "📖",
+      "title": "Buku Cerita",
+      "subtitle": "Dongeng bergambar & dibacakan",
+      "color": "#CDB0FF",
+      "shade": "#9168DA",
+      "command": "kidsos:cerita"
+    },
+    {
+      "emoji": "🔤",
+      "title": "Belajar Membaca",
+      "subtitle": "Kenal huruf & tebak kata",
+      "color": "#FFB76B",
+      "shade": "#E38B34",
+      "command": "kidsos:membaca"
+    },
+    {
+      "emoji": "🔢",
+      "title": "Ayo Berhitung",
+      "subtitle": "Hitung benda & tambah-tambahan",
+      "color": "#FFAFD4",
+      "shade": "#E26DA4",
+      "command": "kidsos:berhitung"
+    },
+    {
+      "emoji": "🐮",
+      "title": "Suara Hewan",
+      "subtitle": "Dengar suara sapi, kucing & kawan-kawan",
+      "color": "#FFE57A",
+      "shade": "#D9B52C",
+      "command": "kidsos:hewan"
+    },
+    {
+      "emoji": "🔷",
+      "title": "Bentuk & Warna",
+      "subtitle": "Kenali bulat, kotak & warna-warni",
+      "color": "#8FD6FF",
+      "shade": "#4AA8DE",
+      "command": "kidsos:bentuk"
+    },
+    {
+      "emoji": "🖍️",
+      "title": "Mewarnai",
+      "subtitle": "Warnai gambar atau menggambar bebas",
+      "color": "#9EE6A0",
+      "shade": "#56B85B",
+      "command": "kidsos:mewarnai"
+    },
+    {
+      "emoji": "🧩",
+      "title": "Puzzle Seru",
+      "subtitle": "Susun kepingan jadi gambar",
+      "color": "#FFAFD4",
+      "shade": "#E26DA4",
+      "command": "kidsos:puzzle"
+    },
+    {
+      "emoji": "🎹",
+      "title": "Bermain Musik",
+      "subtitle": "Piano, drum & lagu",
+      "color": "#FFE57A",
+      "shade": "#D9B52C",
+      "command": "kidsos:musik"
+    },
+    {
+      "emoji": "⌨️",
+      "title": "Belajar Mengetik",
+      "subtitle": "Cari huruf di keyboard",
+      "color": "#CDB0FF",
+      "shade": "#9168DA",
+      "command": "kidsos:mengetik"
+    },
+    {
+      "emoji": "🦖",
+      "title": "Petualangan Dinosaurus",
+      "subtitle": "Lompat, lari & kumpulkan bintang!",
+      "color": "#7EDFD0",
+      "shade": "#35AE9B",
+      "command": "kidsos:dino",
+      "wide": true
+    }
+  ]
+}

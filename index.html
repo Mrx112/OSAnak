@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo UI/UX - Custom Kids OS</title>
+    <style>
+        /* === GAYA UMUM === */
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            height: 100vh; overflow: hidden;
+            background-color: #222;
+        }
+
+        /* === GAYA LAYAR MODE ANAK (KIOSK) === */
+        #kids-ui {
+            width: 100%; height: 100%;
+            background-color: #e0f7fa;
+            background-image: radial-gradient(#b2ebf2 20%, transparent 20%), radial-gradient(#b2ebf2 20%, transparent 20%);
+            background-size: 50px 50px;
+            background-position: 0 0, 25px 25px;
+            font-family: 'Comic Sans MS', 'Chalkboard SE', cursive, sans-serif;
+            display: flex; flex-direction: column;
+            transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+            position: absolute; top: 0; left: 0; z-index: 10;
+        }
+        .top-bar-kids {
+            background-color: #37474f; color: white; padding: 10px 20px;
+            display: flex; justify-content: space-between; font-weight: bold; border-bottom: 4px solid #263238;
+        }
+        .admin-btn {
+            cursor: pointer; padding: 5px 15px; background-color: #ff5252; border-radius: 8px;
+            border: 2px solid #b71c1c; box-shadow: 0 4px 0 #b71c1c; transition: transform 0.1s;
+        }
+        .admin-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #b71c1c; }
+        .header-kids {
+            text-align: center; padding: 10px; font-size: 2.2rem; color: #ff9800;
+            text-shadow: 2px 2px 0px #fff; font-weight: bold; margin-bottom: 5px;
+        }
+        
+        /* Grid Menu Anak Lengkap */
+        .grid-container {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;
+            padding: 5px 40px 20px 40px; flex-grow: 1; overflow-y: auto;
+        }
+        .card {
+            background-color: #ffffff; border: 5px solid; border-radius: 20px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; font-size: 1.3rem; font-weight: bold; cursor: pointer;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.15); transition: transform 0.1s; padding: 10px;
+        }
+        .card:active { transform: translateY(6px); box-shadow: 0 0 0 rgba(0,0,0,0); }
+        .card .icon { font-size: 3.5rem; margin-bottom: 5px; }
+        .text-container { display: flex; flex-direction: column; align-items: center; }
+        .subtitle { font-size: 0.95rem; color: #666; font-weight: normal; margin-top: 2px; }
+        
+        .c-animal { border-color: #ffb74d; background-color: #fff3e0; color: #e65100; }
+        .c-shape { border-color: #4fc3f7; background-color: #e1f5fe; color: #01579b; }
+        .c-color { border-color: #81c784; background-color: #e8f5e9; color: #1b5e20; }
+        .c-puzzle { border-color: #f06292; background-color: #fce4ec; color: #880e4f; }
+        .c-music { border-color: #ffd54f; background-color: #fffde7; color: #f57f17; }
+        .c-story { border-color: #ba68c8; background-color: #f3e5f5; color: #4a148c; }
+        .full-width {
+            grid-column: span 2; border-color: #4db6ac; color: #004d40; background-color: #e0f2f1;
+            flex-direction: row; gap: 20px; padding: 15px;
+        }
+        .full-width .icon { margin-bottom: 0; font-size: 4rem; }
+
+        /* === MODAL PASSWORD CUSTOM === */
+        #password-modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7); z-index: 50; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.3s;
+        }
+        .modal-content {
+            background-color: white; padding: 30px; border-radius: 15px; text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5); width: 300px;
+        }
+        .modal-content h2 { margin-top: 0; color: #d32f2f; }
+        .modal-content input {
+            width: 90%; padding: 10px; font-size: 1.2rem; text-align: center; margin-bottom: 20px;
+            border: 2px solid #ccc; border-radius: 8px; outline: none;
+        }
+        .btn-group button {
+            padding: 10px 20px; font-size: 1rem; cursor: pointer; border: none; border-radius: 5px; font-weight: bold; margin: 0 5px;
+        }
+        .btn-masuk { background-color: #4CAF50; color: white; }
+        .btn-batal { background-color: #f44336; color: white; }
+
+        /* === GAYA LAYAR DESKTOP LINUX (ADMIN MODE) === */
+        #linux-ui {
+            width: 100%; height: 100%;
+            background: url('https://www.transparenttextures.com/patterns/cubes.png'), linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            display: flex; flex-direction: column; justify-content: space-between;
+            position: absolute; top: 0; left: 0; z-index: 5; opacity: 0; transform: scale(1.05);
+            transition: opacity 0.8s ease-in-out, transform 0.8s ease-in-out;
+        }
+        .desktop-area { padding: 20px; flex-grow: 1; position: relative; }
+        
+        .terminal-window {
+            width: 600px; height: 350px; background-color: #121212; border: 1px solid #555;
+            box-shadow: 5px 5px 15px rgba(0,0,0,0.5); border-radius: 5px 5px 0 0;
+            position: absolute; top: 50px; left: 50px; display: flex; flex-direction: column;
+        }
+        .terminal-header {
+            background-color: #ddd; color: #333; padding: 5px 10px; font-size: 0.9rem;
+            font-weight: bold; display: flex; justify-content: space-between; border-radius: 5px 5px 0 0;
+        }
+        .terminal-body {
+            padding: 10px; color: #0f0; font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem; overflow-y: auto; flex-grow: 1;
+        }
+        .cursor { display: inline-block; width: 10px; height: 15px; background-color: #0f0; animation: blink 1s step-end infinite; }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+        /* === TASKBAR & START MENU ANTIX === */
+        .taskbar {
+            background-color: #d4d0c8; height: 40px; border-top: 2px solid #fff;
+            display: flex; align-items: center; padding: 0 5px; font-size: 0.9rem; justify-content: space-between;
+            position: relative; z-index: 30;
+        }
+        .taskbar-left { display: flex; align-items: center; gap: 5px; }
+        
+        .start-btn { 
+            background-color: #d4d0c8; border: 2px outset #fff; padding: 4px 15px; 
+            font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px;
+        }
+        .start-btn:active { border-style: inset; }
+        .open-app { background-color: #bbb; border: 2px inset #eee; padding: 5px 15px; margin-left: 10px; }
+        
+        /* Popup Start Menu */
+        #start-menu-popup {
+            display: none; position: absolute; bottom: 40px; left: 0; width: 250px;
+            background-color: #d4d0c8; border: 2px outset #fff; border-bottom: none;
+            box-shadow: 2px -2px 5px rgba(0,0,0,0.2); z-index: 40;
+        }
+        .menu-header {
+            background: linear-gradient(90deg, #000080, #1084d0); color: white;
+            padding: 5px 10px; font-weight: bold; font-size: 1.1rem; writing-mode: vertical-rl;
+            transform: rotate(180deg); position: absolute; left: 0; top: 0; bottom: 0; width: 30px;
+            text-align: center;
+        }
+        .menu-items { margin-left: 30px; display: flex; flex-direction: column; padding: 2px; }
+        .menu-item {
+            padding: 10px 15px; cursor: pointer; display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        .menu-item:hover { background-color: #000080; color: white; }
+        .menu-item.special { font-weight: bold; color: #0056b3; }
+        .menu-item.special:hover { color: white; }
+
+        /* Class Animasi Transisi */
+        .hide-kids { opacity: 0 !important; transform: scale(0.9) !important; pointer-events: none; }
+        .show-linux { opacity: 1 !important; transform: scale(1) !important; z-index: 20 !important; }
+    </style>
+</head>
+<body>
+
+    <!-- ================= LAYAR MODE ANAK ================= -->
+    <div id="kids-ui">
+        <div class="top-bar-kids">
+            <div class="admin-btn" onclick="openModal()">🔒 Mode Admin</div>
+            <div>📶 WiFi Aktif &nbsp; | &nbsp; 🔋 100%</div>
+        </div>
+        <div class="header-kids">🦖 DUNIA BERMAIN & BELAJAR 🦕</div>
+        <div class="grid-container">
+            <div class="card c-animal">
+                <div class="icon">🦁🦆</div><div class="text-container">SUARA HEWAN<div class="subtitle">Kenali namanya</div></div>
+            </div>
+            <div class="card c-shape">
+                <div class="icon">🔺🟡</div><div class="text-container">BENTUK & WARNA<div class="subtitle">Bermain menyusun</div></div>
+            </div>
+            <div class="card c-color">
+                <div class="icon">🎨🖍️</div><div class="text-container">MEWARNAI<div class="subtitle">Buku gambar</div></div>
+            </div>
+            <div class="card c-puzzle">
+                <div class="icon">🧩🧸</div><div class="text-container">PUZZLE SERU<div class="subtitle">Susun gambar</div></div>
+            </div>
+            <div class="card c-music">
+                <div class="icon">🎵🎹</div><div class="text-container">BERMAIN MUSIK<div class="subtitle">Pencet nada</div></div>
+            </div>
+            <div class="card c-story">
+                <div class="icon">📖✨</div><div class="text-container">BUKU CERITA<div class="subtitle">Dengarkan dongeng</div></div>
+            </div>
+            <div class="card full-width">
+                <div class="icon">🦕🌋</div><div class="text-container">PETUALANGAN DINOSAURUS<div class="subtitle">Eksplorasi dunia dino!</div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL PASSWORD ================= -->
+    <div id="password-modal">
+        <div class="modal-content">
+            <h2>Akses Admin</h2>
+            <p style="margin-top:0; font-size:0.9rem; color:#666;">(Ketik <b>admin</b> untuk demo)</p>
+            <input type="password" id="pass-input" placeholder="Masukkan Sandi">
+            <div class="btn-group">
+                <button class="btn-masuk" onclick="checkPassword()">Masuk</button>
+                <button class="btn-batal" onclick="closeModal()">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= LAYAR DESKTOP LINUX ================= -->
+    <div id="linux-ui">
+        <div class="desktop-area" onclick="closeStartMenu()">
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <span>root@antix:~</span><span>_ □ x</span>
+                </div>
+                <div class="terminal-body">
+                    Welcome to AntiX Linux 23.1<br>
+                    root@antix:~# systemctl stop kids-kiosk<br>
+                    [ <span style="color:lime;">OK</span> ] Kids Launcher Stopped.<br>
+                    root@antix:~# <span class="cursor"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Start Menu Popup -->
+        <div id="start-menu-popup">
+            <div class="menu-header">AntiX Linux</div>
+            <div class="menu-items">
+                <div class="menu-item">🖥️ Terminal (Root)</div>
+                <div class="menu-item">📁 File Manager</div>
+                <div class="menu-item">⚙️ System Settings</div>
+                <div class="menu-item">🌐 Web Browser</div>
+                <!-- Tombol kembali ke Mode Anak diletakkan di dalam Start Menu -->
+                <div class="menu-item special" onclick="returnToKidsMode()">🔄 Kembali ke Mode Anak</div>
+                <div class="menu-item">⏻ Reboot / Shutdown</div>
+            </div>
+        </div>
+
+        <div class="taskbar">
+            <div class="taskbar-left">
+                <div class="start-btn" onclick="toggleStartMenu()">🐧 Start</div>
+                <div class="open-app">Terminal</div>
+            </div>
+            <div class="taskbar-right" style="padding-right: 15px;">
+                <span>10:45 AM</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= SCRIPT LOGIKA ================= -->
+    <script>
+        const modal = document.getElementById('password-modal');
+        const passInput = document.getElementById('pass-input');
+        const kidsUI = document.getElementById('kids-ui');
+        const linuxUI = document.getElementById('linux-ui');
+        const startMenu = document.getElementById('start-menu-popup');
+
+        // Modal Logika
+        function openModal() {
+            modal.style.display = 'flex';
+            setTimeout(() => { modal.style.opacity = '1'; }, 10);
+            passInput.value = ''; passInput.focus();
+        }
+        function closeModal() {
+            modal.style.opacity = '0';
+            setTimeout(() => { modal.style.display = 'none'; }, 300);
+        }
+
+        // Cek Sandi & Transisi ke Linux
+        function checkPassword() {
+            if (passInput.value === 'admin') {
+                closeModal();
+                kidsUI.classList.add('hide-kids');
+                linuxUI.classList.add('show-linux');
+            } else {
+                alert('Password salah! Coba ketik "admin"');
+                passInput.value = ''; passInput.focus();
+            }
+        }
+
+        // Start Menu Logika
+        function toggleStartMenu() {
+            if (startMenu.style.display === 'block') {
+                startMenu.style.display = 'none';
+            } else {
+                startMenu.style.display = 'block';
+            }
+        }
+        function closeStartMenu() {
+            startMenu.style.display = 'none';
+        }
+
+        // Kembali ke UI Anak (Dari Start Menu)
+        function returnToKidsMode() {
+            closeStartMenu();
+            linuxUI.classList.remove('show-linux');
+            kidsUI.classList.remove('hide-kids');
+        }
+
+        passInput.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') checkPassword();
+        });
+    </script>
+</body>
+</html>

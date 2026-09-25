@@ -1,0 +1,69 @@
+{
+  "stories": [
+    {
+      "title": "Kura-kura dan Kelinci",
+      "cover": "🐢",
+      "pages": [
+        {"scene": "🐇 🌳 🐢", "text": "Di sebuah hutan, Kelinci suka sekali berlari. Ia sering mengejek Kura-kura yang jalannya pelan."},
+        {"scene": "🐢 🤝 🐇", "text": "\"Ayo kita lomba lari!\" kata Kura-kura. Kelinci tertawa, \"Kamu pasti kalah!\""},
+        {"scene": "🏁 🐇💨", "text": "Lomba dimulai. Kelinci berlari sangat cepat dan meninggalkan Kura-kura jauh di belakang."},
+        {"scene": "🐇 😴 🌳", "text": "\"Kura-kura masih jauh. Aku tidur sebentar saja,\" pikir Kelinci. Ia pun tertidur di bawah pohon."},
+        {"scene": "🐢 👣 👣 👣", "text": "Kura-kura terus berjalan. Pelan-pelan, tidak berhenti, dan tidak menyerah."},
+        {"scene": "🐢 🏁 🎉", "text": "Saat Kelinci bangun, Kura-kura sudah sampai di garis akhir! Kura-kura menang."},
+        {"scene": "🐢 ❤️ 🐇", "text": "Pesan cerita: jangan sombong, dan teruslah berusaha walaupun pelan."}
+      ]
+    },
+    {
+      "title": "Kancil dan Buaya",
+      "cover": "🦌",
+      "pages": [
+        {"scene": "🦌 🌊 🥒", "text": "Si Kancil ingin makan ketimun di seberang sungai. Tapi sungainya lebar dan dalam."},
+        {"scene": "🐊 🐊 🐊", "text": "Di sungai ada banyak buaya yang sedang lapar. Kancil harus berpikir cerdik."},
+        {"scene": "🦌 👑 📜", "text": "\"Hai Buaya! Raja hutan menyuruhku menghitung kalian. Ayo berbaris sampai ke seberang!\""},
+        {"scene": "🐊🐊🐊🐊🐊", "text": "Para buaya percaya. Mereka berbaris rapi dari tepi sungai sampai ke seberang."},
+        {"scene": "🦌 1️⃣ 2️⃣ 3️⃣", "text": "Kancil melompat di punggung buaya sambil berhitung, \"Satu, dua, tiga, empat, lima!\""},
+        {"scene": "🦌 🥒 😋", "text": "Hup! Kancil sampai di seberang dan makan ketimun dengan gembira."},
+        {"scene": "🦌 💡", "text": "Pesan cerita: saat menghadapi masalah, tetap tenang dan pakai akalmu."}
+      ]
+    },
+    {
+      "title": "Semut dan Belalang",
+      "cover": "🐜",
+      "pages": [
+        {"scene": "☀️ 🐜 🌾", "text": "Saat musim panas, Semut bekerja keras mengumpulkan makanan setiap hari."},
+        {"scene": "🦗 🎻 🎶", "text": "Belalang hanya bermain musik dan bernyanyi. \"Ayo main saja, Semut!\" ajaknya."},
+        {"scene": "🐜 🏠 🌾", "text": "\"Aku harus menyimpan makanan untuk musim hujan,\" jawab Semut sambil terus bekerja."},
+        {"scene": "🌧️ 🦗 😢", "text": "Musim hujan tiba. Belalang kedinginan dan lapar karena tidak punya makanan."},
+        {"scene": "🐜 🤗 🦗", "text": "Semut yang baik hati mengajak Belalang masuk dan berbagi makanan."},
+        {"scene": "🦗 🌾 🐜", "text": "Belalang berjanji, \"Mulai sekarang aku juga akan rajin bekerja!\""},
+        {"scene": "🐜 🦗 ❤️", "text": "Pesan cerita: rajin bekerja itu penting, dan berbagi itu indah."}
+      ]
+    },
+    {
+      "title": "Bintang Kecil Pemberani",
+      "cover": "⭐",
+      "pages": [
+        {"scene": "🌙 ⭐ ✨", "text": "Di langit malam, ada Bintang Kecil yang sinarnya paling redup. Ia sering merasa malu."},
+        {"scene": "⭐ 😟", "text": "\"Bintang lain terang sekali. Sinarku kecil, tidak ada gunanya,\" kata Bintang Kecil sedih."},
+        {"scene": "⛵ 🌊 🌫️", "text": "Suatu malam, sebuah perahu nelayan tersesat di tengah laut yang gelap."},
+        {"scene": "⭐ 💪 ✨", "text": "Bintang Kecil memberanikan diri. Ia bersinar sekuat tenaga, berkelip-kelip terus."},
+        {"scene": "⛵ 👀 ⭐", "text": "\"Lihat! Bintang itu menunjukkan arah pulang!\" seru pak nelayan dengan gembira."},
+        {"scene": "🏠 ⛵ 🎉", "text": "Perahu itu sampai di rumah dengan selamat. Semua orang berterima kasih."},
+        {"scene": "⭐ 😊 🌙", "text": "Pesan cerita: sekecil apa pun, kita semua bisa menolong orang lain."}
+      ]
+    },
+    {
+      "title": "Awan yang Ingin Menolong",
+      "cover": "☁️",
+      "pages": [
+        {"scene": "☁️ ☀️ 🌻", "text": "Awan Putih suka melayang-layang di langit biru sambil melihat bunga-bunga di bawah."},
+        {"scene": "🌻 🥀 🏜️", "text": "Suatu hari, ia melihat kebun Pak Tani kering. Bunga dan sayurnya layu kehausan."},
+        {"scene": "☁️ 💭 💧", "text": "\"Aku ingin menolong mereka,\" pikir Awan Putih. \"Tapi bagaimana caranya?\""},
+        {"scene": "☁️ ☁️ ☁️", "text": "Awan Putih mengajak teman-teman awan berkumpul. Mereka jadi awan besar yang kelabu."},
+        {"scene": "🌧️ 💧 💧", "text": "Tik, tik, tik! Hujan turun membasahi kebun Pak Tani."},
+        {"scene": "🌻 🥕 🍅", "text": "Bunga kembali mekar, sayuran tumbuh segar. Pak Tani tersenyum senang."},
+        {"scene": "🌈 ☁️ 😊", "text": "Pelangi muncul di langit. Pesan cerita: bersama-sama, kita bisa melakukan hal besar!"}
+      ]
+    }
+  ]
+}

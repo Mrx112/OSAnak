@@ -1,0 +1,43 @@
+# Tema GRUB KidsOS (dibuat oleh packaging/make_boot_assets.py)
+title-text: ""
+desktop-image: "background.jpg"
+desktop-color: "#E9F6FF"
+terminal-font: "Unifont Regular 16"
+message-color: "#3B2F5C"
+
++ label {
+    left = 27%
+    width = 46%
+    top = 8%
+    align = "center"
+    text = "KidsOS - Dunia Bermain & Belajar"
+    font = "DejaVu Sans Bold 28"
+    color = "#3B2F5C"
+}
+
++ boot_menu {
+    left = 30%
+    width = 40%
+    top = 16%
+    height = 22%
+    item_font = "DejaVu Sans Bold 22"
+    selected_item_font = "DejaVu Sans Bold 22"
+    item_color = "#3B2F5C"
+    selected_item_color = "#3B2F5C"
+    item_height = 42
+    item_padding = 14
+    item_spacing = 8
+    selected_item_pixmap_style = "select_*.png"
+    scrollbar = false
+}
+
++ label {
+    id = "__timeout__"
+    left = 27%
+    width = 46%
+    top = 41%
+    align = "center"
+    text = "Mulai otomatis dalam %d detik  -  Enter = mulai sekarang"
+    font = "DejaVu Sans Bold 18"
+    color = "#6B5A93"
+}

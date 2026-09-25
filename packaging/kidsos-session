@@ -1,0 +1,90 @@
+#!/bin/sh
+# KidsOS - sesi X untuk user anak.
+#
+# Dijalankan oleh ~/.xinitrc (startx otomatis dari tty1). Tidak ada desktop,
+# taskbar, atau menu antiX: hanya window manager minimal (matchbox, semua
+# jendela otomatis layar penuh) + launcher main.py yang terus dihidupkan.
+#
+# Kode keluar launcher:
+#   10       -> admin memilih "Desktop Admin": jalankan IceWM, lalu kembali.
+#   11       -> KidsOS baru di-upgrade: langsung jalankan versi baru.
+#   lainnya  -> launcher mati tak terduga: hidupkan lagi. Jika gagal 3x
+#               berturut-turut dengan cepat, buka terminal login admin.
+
+LAUNCHER=/opt/kidsos/main.py
+CONF=/etc/kidsos/kidsos.conf
+ADMIN_USER=root
+[ -r "$CONF" ] && . "$CONF"
+
+# Layar tidak boleh mati/blank sendiri; buang Ctrl+Alt+Backspace (matikan X).
+xset s off -dpms s noblank 2>/dev/null
+setxkbmap -option "" 2>/dev/null
+xsetroot -solid "#FFF6E5" 2>/dev/null
+
+WM_PID=""
+start_wm() {
+    matchbox-window-manager -use_titlebar no -use_cursor yes &
+    WM_PID=$!
+}
+stop_wm() {
+    [ -n "$WM_PID" ] && kill "$WM_PID" 2>/dev/null && wait "$WM_PID" 2>/dev/null
+    WM_PID=""
+}
+
+admin_terminal() {
+    # Terminal yang langsung meminta password admin (su). Tanpa password
+    # yang benar, terminal tertutup dan anak kembali ke launcher.
+    msg="KidsOS: login admin ($ADMIN_USER). Ketik 'exit' untuk kembali."
+    for term in x-terminal-emulator xterm; do
+        if command -v "$term" >/dev/null 2>&1; then
+            "$term" -e sh -c "echo '$msg'; su -l '$ADMIN_USER'"
+            return
+        fi
+    done
+}
+
+admin_desktop() {
+    stop_wm
+    if command -v icewm-session >/dev/null 2>&1; then
+        icewm-session
+    elif command -v startfluxbox >/dev/null 2>&1; then
+        startfluxbox
+    elif command -v jwm >/dev/null 2>&1; then
+        jwm
+    else
+        start_wm
+        admin_terminal
+        return
+    fi
+    start_wm
+}
+
+start_wm
+fails=0
+while :; do
+    started=$(date +%s)
+    python3 "$LAUNCHER" --session
+    code=$?
+
+    if [ "$code" -eq 10 ]; then
+        admin_desktop
+        fails=0
+        continue
+    fi
+    if [ "$code" -eq 11 ]; then      # restart setelah upgrade KidsOS
+        fails=0
+        continue
+    fi
+
+    echo "kidsos-session: launcher keluar dengan kode $code" >&2
+    if [ $(( $(date +%s) - started )) -lt 15 ]; then
+        fails=$((fails + 1))
+    else
+        fails=0
+    fi
+    if [ "$fails" -ge 3 ]; then
+        admin_terminal
+        fails=0
+    fi
+    sleep 1
+done

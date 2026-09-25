@@ -1,0 +1,13 @@
+#!/bin/sh
+# Sebelum paket dihapus: kembalikan antiX ke login & desktop biasa.
+set -e
+
+case "$1" in
+    remove|deconfigure)
+        if [ -x /usr/sbin/kidsos-setup ]; then
+            /usr/sbin/kidsos-setup disable || true
+        fi
+        ;;
+esac
+
+exit 0
