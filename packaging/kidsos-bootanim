@@ -120,6 +120,9 @@ def xorg_running():
 
 def play():
     try:
+        with open("/proc/cmdline") as f:
+            if "kidsos=off" in f.read().split():
+                return          # mode darurat: jangan tutupi layar teks
         w, h, bpp, stride = fb_info()
     except OSError:
         return

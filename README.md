@@ -62,8 +62,8 @@ Setiap jawaban benar memberi ⭐, dan setiap kelipatan 5 bintang ada perayaan ke
 ```sh
 git clone https://github.com/Mrx112/OSAnak.git
 cd OSAnak
-python3 packaging/build_deb.py                  # -> dist/kidsos_1.1.0_all.deb
-sudo apt install ./dist/kidsos_1.1.0_all.deb
+python3 packaging/build_deb.py                  # -> dist/kidsos_1.1.1_all.deb
+sudo apt install ./dist/kidsos_1.1.1_all.deb
 sudo reboot
 ```
 
@@ -81,12 +81,33 @@ Selama instalasi kamu akan diminta membuat **password Mode Admin**. Installer ak
 | Perintah | Fungsi |
 |---|---|
 | `sudo kidsos-setup status` | Lihat status KidsOS |
+| `sudo kidsos-setup log` | Diagnosa jika menu anak tidak muncul |
 | `sudo kidsos-setup password` | Ganti password Mode Admin |
 | `sudo kidsos-setup boot` | Pasang ulang tema GRUB dan animasi boot (misalnya setelah ganti monitor) |
 | `sudo kidsos-setup disable` | Kembalikan antiX seperti semula |
 
 **Jalan darurat:** di menu GRUB tekan `e`, tambahkan `kidsos=off` di akhir baris `linux`, lalu tekan
 `Ctrl+X`. Komputer akan masuk ke login teks biasa.
+
+## 🆘 Jika macet setelah menu boot
+
+1. Di menu GRUB tekan `e`, lalu edit teksnya:
+   - hapus baris `set gfxpayload=keep` (kalau ada),
+   - di baris yang diawali `linux`, hapus `quiet loglevel=3 vt.global_cursor_default=0`, lalu
+     tambahkan `kidsos=off` di akhir baris.
+
+   Tekan `Ctrl+X`. Pesan boot akan terlihat, dan komputer berhenti di login teks.
+2. Tekan `Ctrl+Alt+F2`, login dengan akun admin, lalu jalankan `sudo kidsos-setup log`. Perintah
+   ini menampilkan penyebabnya: error tampilan (Xorg), display manager yang bentrok, dan lainnya.
+3. Perbarui ke versi terbaru:
+   ```sh
+   wget https://raw.githubusercontent.com/Mrx112/OSAnak/main/kidsos_1.1.1_all.deb
+   sudo apt install ./kidsos_1.1.1_all.deb && sudo reboot
+   ```
+   Untuk kembali ke antiX biasa: `sudo kidsos-setup disable && sudo reboot`.
+
+Sejak versi 1.1.1, kalau tampilan menu gagal 3 kali berturut-turut, layar menampilkan petunjuk ini
+(tidak lagi terlihat macet).
 
 ## 🔒 Mode Admin
 

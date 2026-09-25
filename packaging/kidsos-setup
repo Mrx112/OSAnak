@@ -17,6 +17,7 @@
 #   7. Membuat semua suara & musik (sounds.py) sekali di /opt/kidsos/sounds.
 #   8. Tema menu GRUB (bootmenu.jpg) & animasi boot (boot1.gif) di framebuffer.
 #
+#   sudo kidsos-setup log        diagnosa jika menu anak tidak muncul
 #   sudo kidsos-setup boot       pasang ulang tema GRUB & animasi boot
 #                                (mis. setelah ganti monitor/resolusi)
 #
@@ -147,8 +148,29 @@ setup_kid_home() {
     cat >> "$bp" <<EOF
 $MARK_BEGIN
 # Nyalakan komputer -> langsung ke menu anak. Lewati dengan kidsos=off di GRUB.
+# Jika tampilan gagal 3x berturut-turut, berhenti mencoba & tampilkan petunjuk
+# (daripada mengulang diam-diam sehingga layar terlihat macet).
 if [ -z "\${DISPLAY:-}" ] && [ "\$(tty)" = /dev/tty1 ] && ! grep -qw kidsos=off /proc/cmdline; then
-    exec startx >"\$HOME/.kidsos-xsession.log" 2>&1
+    fails=/tmp/kidsos-x-fails
+    n=\$(cat "\$fails" 2>/dev/null || echo 0)
+    if [ "\$n" -lt 3 ]; then
+        started=\$(date +%s)
+        startx >"\$HOME/.kidsos-xsession.log" 2>&1
+        if [ \$(( \$(date +%s) - started )) -lt 60 ]; then
+            echo \$((n + 1)) > "\$fails"
+        else
+            echo 0 > "\$fails"
+        fi
+        exit      # login otomatis lagi -> coba lagi
+    fi
+    clear
+    echo
+    echo "  KidsOS: tampilan menu anak gagal dimulai (3x)."
+    echo
+    echo "  Admin: tekan Ctrl+Alt+F2, login dengan akun admin, lalu jalankan:"
+    echo "      sudo kidsos-setup log"
+    echo
+    exec sleep 2147483647
 fi
 $MARK_END
 EOF
@@ -285,9 +307,8 @@ GRUB_TIMEOUT=5
 GRUB_TIMEOUT_STYLE=menu
 unset GRUB_TERMINAL
 GRUB_TERMINAL_OUTPUT=gfxterm
-GRUB_GFXMODE="1920x1080,1366x768,1280x720,1024x768,auto"
-GRUB_GFXPAYLOAD_LINUX=keep
-GRUB_CMDLINE_LINUX_DEFAULT="\$GRUB_CMDLINE_LINUX_DEFAULT quiet loglevel=3 vt.global_cursor_default=0"
+GRUB_GFXMODE=auto
+GRUB_CMDLINE_LINUX_DEFAULT="\$GRUB_CMDLINE_LINUX_DEFAULT quiet"
 $MARK_END
 EOF
     update-grub >/dev/null 2>&1 || warn "update-grub gagal; periksa /etc/default/grub"
@@ -441,6 +462,30 @@ cmd_disable() {
     say "Nyalakan ulang untuk kembali ke antiX biasa."
 }
 
+cmd_log() {
+    local home dm f; home=$(kid_home || true)
+    echo "== Log tampilan anak: $home/.kidsos-xsession.log (akhir) =="
+    tail -n 40 "$home/.kidsos-xsession.log" 2>/dev/null || echo "(belum ada)"
+    echo
+    echo "== Error Xorg =="
+    for f in "$home/.local/share/xorg/Xorg.0.log" /var/log/Xorg.0.log; do
+        [ -f "$f" ] && { echo "-- $f"; grep -E '\(EE\)' "$f" | tail -n 15; }
+    done
+    echo
+    echo "== Display manager yang masih berjalan (bentrok dengan KidsOS) =="
+    for dm in $DMS; do
+        if pgrep -x "$dm" >/dev/null 2>&1; then echo "  $dm MASIH BERJALAN"; fi
+    done
+    echo
+    echo "== Login otomatis tty1 =="
+    grep -E '^1:' /etc/inittab 2>/dev/null || true
+    [ -f /etc/sv/getty-tty1/run ] && cat /etc/sv/getty-tty1/run
+    echo
+    echo "== Percobaan gagal sejak boot: $(cat /tmp/kidsos-x-fails 2>/dev/null || echo 0) =="
+    echo
+    cmd_status
+}
+
 cmd_status() {
     echo "Init system : $(init_system)"
     echo "User anak   : $KID_USER $(id "$KID_USER" >/dev/null 2>&1 && echo '(ada)' || echo '(belum ada)')"
@@ -456,5 +501,6 @@ case "${1:-enable}" in
     password) set_password ;;
     status)   cmd_status ;;
     boot)     cmd_boot ;;
-    *) echo "Pemakaian: kidsos-setup {enable|disable|password|status|boot}" >&2; exit 2 ;;
+    log)      cmd_log ;;
+    *) echo "Pemakaian: kidsos-setup {enable|disable|password|status|boot|log}" >&2; exit 2 ;;
 esac
