@@ -1,0 +1,4 @@
+#!/bin/sh
+# KidsOS: jalankan RPG "Legenda Kristal Pelangi" di jendela sendiri
+# (mis. dari Desktop Admin). Tambahkan --window untuk mode jendela.
+cd /opt/kidsos && exec python3 -m rpg "$@"

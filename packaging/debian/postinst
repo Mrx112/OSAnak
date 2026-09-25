@@ -6,6 +6,8 @@ set -e
 case "$1" in
     configure)
         mkdir -p /etc/kidsos
+        # Kompilasi Python sekali (user anak tidak bisa menulis __pycache__ di /opt).
+        python3 -m compileall -q /opt/kidsos >/dev/null 2>&1 || true
         /usr/sbin/kidsos-setup enable || {
             echo "[KidsOS] Aktivasi gagal. Perbaiki lalu jalankan: sudo kidsos-setup enable" >&2
         }

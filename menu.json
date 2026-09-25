@@ -81,6 +81,15 @@
       "shade": "#35AE9B",
       "command": "kidsos:dino",
       "wide": true
+    },
+    {
+      "emoji": "🏰",
+      "title": "Legenda Kristal Pelangi",
+      "subtitle": "Petualangan RPG • main bareng teman (LAN)",
+      "color": "#FFB0BE",
+      "shade": "#E0405E",
+      "command": "kidsos:rpg",
+      "wide": true
     }
   ]
 }

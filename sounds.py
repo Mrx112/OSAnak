@@ -240,6 +240,16 @@ EFFECTS = {
     "snare": lambda: _mix((noise(0.3, decay=16, seed=7), 0.7),
                           (tone(190, 0.3, decay=22), 0.3)),
     "hat": lambda: noise(0.06, decay=60, lowpass=0.9, seed=11),
+    # --- RPG Legenda Kristal Pelangi
+    "slash": lambda: _mix((noise(0.16, decay=18, lowpass=0.8, seed=13, rise=0.3), 0.8),
+                          (sweep(1400, 500, 0.12, decay=20), 0.35)),
+    "hit": lambda: _mix((sweep(260, 90, 0.14, decay=18), 1.0),
+                        (noise(0.08, decay=40, lowpass=0.5, seed=17), 0.6)),
+    "magic": lambda: _mix((_arp([76, 83, 88, 95], 0.05, 0.35), 0.8),
+                          (sweep(600, 1800, 0.35, decay=6, curve=0.5), 0.3)),
+    "heal": lambda: _arp([72, 79, 84, 88, 91], 0.07, 0.6),
+    "buff": lambda: _mix((sweep(300, 900, 0.3, decay=5, curve=0.6), 0.8),
+                         (_arp([67, 71, 74], 0.08, 0.3), 0.5)),
 }
 PIANO = [60, 62, 64, 65, 67, 69, 71, 72]
 for _k, _n in enumerate(PIANO):
@@ -333,6 +343,18 @@ MUSIC_THEMES = {
     "puzzle":    (92, 4, [5, 3, 0, 4], 57, "box", True, None, True, 81),
     "mengetik":  (110, 4, [0, 5, 3, 4], 60, "pulse", True, "hat", False, 91),
     "dino":      (138, 4, [0, 4, 5, 3], 64, "pulse", True, "full", False, 101),
+    # --- RPG Legenda Kristal Pelangi
+    "rpg_judul":  (96, 4, [0, 5, 3, 4], 62, "pluck", True, None, True, 111),
+    "rpg_cerita": (72, 3, [5, 3, 0, 4], 57, "box", False, None, True, 121),
+    "rpg_desa":   (108, 4, [0, 3, 4, 0], 60, "pluck", True, "light", False, 131),
+    "rpg_kedai":  (120, 3, [0, 4, 0, 3], 62, "box", True, "hat", False, 141),
+    "rpg_padang": (124, 4, [0, 4, 3, 4], 64, "pulse", True, "light", False, 151),
+    "rpg_hutan":  (88, 4, [5, 4, 3, 4], 57, "pluck", True, "hat", True, 161),
+    "rpg_gua":    (80, 4, [5, 1, 3, 4], 55, "box", True, None, True, 171),
+    "rpg_menara": (100, 3, [5, 3, 4, 2], 59, "box", True, "hat", True, 181),
+    "rpg_battle": (150, 4, [5, 3, 4, 4], 57, "pulse", True, "full", False, 191),
+    "rpg_boss":   (160, 4, [5, 5, 3, 4], 52, "pulse", True, "march", True, 201),
+    "rpg_tamat":  (92, 4, [0, 4, 5, 3], 60, "pluck", True, "light", True, 211),
 }
 
 

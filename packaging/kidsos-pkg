@@ -80,9 +80,11 @@ cmd_upgrade_self() {
     raw="$raw/$REPO_BRANCH"
     tmp=$(mktemp -d)
     trap 'rm -rf "$tmp"' EXIT
-    mkdir -p "$tmp/content"
+    mkdir -p "$tmp/content" "$tmp/rpg"
+    rpg_files="__init__.py __main__.py battle.py battle_view.py data.py game.py net.py scenes.py sprites.py ui.py world.py"
 
-    for f in main.py activities.py games.py sounds.py content/cerita.json; do
+    for f in main.py activities.py games.py sounds.py content/cerita.json \
+             $(for r in $rpg_files; do echo "rpg/$r"; done); do
         if command -v curl >/dev/null 2>&1; then
             curl -fsSL --max-time 60 -o "$tmp/$f" "$raw/$f"
         else
@@ -92,7 +94,7 @@ cmd_upgrade_self() {
 
     # Tolak file rusak / bukan Python sebelum menimpa versi yang berjalan.
     python3 -m py_compile "$tmp/main.py" "$tmp/activities.py" "$tmp/games.py" \
-        "$tmp/sounds.py"
+        "$tmp/sounds.py" "$tmp"/rpg/*.py
     python3 -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8"))' \
         "$tmp/content/cerita.json"
 
@@ -100,7 +102,12 @@ cmd_upgrade_self() {
     install -m 644 "$tmp/games.py" "$INSTALL_DIR/games.py"
     install -m 644 "$tmp/sounds.py" "$INSTALL_DIR/sounds.py"
     install -m 644 "$tmp/content/cerita.json" "$INSTALL_DIR/content/cerita.json"
+    install -d "$INSTALL_DIR/rpg"
+    for r in $rpg_files; do
+        install -m 644 "$tmp/rpg/$r" "$INSTALL_DIR/rpg/$r"
+    done
     install -m 755 "$tmp/main.py" "$INSTALL_DIR/main.py"
+    python3 -m compileall -q "$INSTALL_DIR" >/dev/null 2>&1 || true
     # Suara baru (jika VERSION di sounds.py berubah) dibuat ulang sekarang.
     python3 "$INSTALL_DIR/sounds.py" --generate "$INSTALL_DIR/sounds" >/dev/null || true
     echo "KidsOS diperbarui dari $raw"

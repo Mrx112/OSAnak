@@ -16,7 +16,7 @@ import os
 import tarfile
 import time
 
-VERSION = "1.2.2"
+VERSION = "1.3.0"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PKG = os.path.join(ROOT, "packaging")
@@ -32,9 +32,10 @@ Priority: optional
 Homepage: https://github.com/Mrx112/OSAnak
 Description: KidsOS - antiX menjadi sistem operasi khusus anak
  Setelah komputer menyala, langsung tampil menu bermain & belajar anak
- (tanpa login, tanpa desktop). 10 aktivitas bawaan siap pakai: Buku
+ (tanpa login, tanpa desktop). 11 aktivitas bawaan siap pakai: Buku
  Cerita, Belajar Membaca, Ayo Berhitung, Suara Hewan, Bentuk & Warna,
- Mewarnai, Puzzle, Bermain Musik, Belajar Mengetik, Petualangan Dinosaurus.
+ Mewarnai, Puzzle, Bermain Musik, Belajar Mengetik, Petualangan Dinosaurus,
+ dan RPG Legenda Kristal Pelangi (main sendiri atau co-op lewat LAN).
  Mode Admin berpassword untuk desktop admin, terminal, repository menu,
  serta update & upgrade (dengan login akun admin Linux).
 """
@@ -50,7 +51,13 @@ FILES = [
     ("packaging/kidsos-pkg", "usr/lib/kidsos/kidsos-pkg", 0o755),
     ("packaging/kidsos-setup", "usr/sbin/kidsos-setup", 0o755),
     ("packaging/kidsos-bootanim", "usr/lib/kidsos/kidsos-bootanim", 0o755),
+    ("packaging/kidsos-rpg", "usr/bin/kidsos-rpg", 0o755),
+    ("packaging/kidsos-rpg.desktop", "usr/share/applications/kidsos-rpg.desktop", 0o644),
 ]
+# RPG "Legenda Kristal Pelangi" (paket Python rpg/).
+for _name in sorted(os.listdir(os.path.join(ROOT, "rpg"))):
+    if _name.endswith(".py"):
+        FILES.append((f"rpg/{_name}", f"opt/kidsos/rpg/{_name}", 0o644))
 # Aset boot (tema GRUB, animasi boot, layar sambutan) - dibuat make_boot_assets.py.
 for _dir, _subdirs, _files in sorted(os.walk(os.path.join(ROOT, "assets"))):
     for _name in sorted(_files):

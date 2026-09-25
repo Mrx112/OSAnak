@@ -1075,6 +1075,12 @@ ACTIVITIES = {
 
 def create_activity(name, scale):
     """Buat aktivitas dari nama di command "kidsos:<nama>"; None jika tak dikenal."""
+    if name == "rpg":                   # RPG Legenda Kristal Pelangi (folder rpg/)
+        try:
+            import rpg
+        except ImportError:
+            return None
+        return rpg.RpgActivity(scale)
     import games   # permainan kanvas (mewarnai, puzzle, musik, dino); impor di sini
     cls = ACTIVITIES.get(name) or games.GAMES.get(name)  # agar tidak saling impor
     return cls(scale) if cls else None

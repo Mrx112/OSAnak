@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Legenda Kristal Pelangi
+Comment=RPG petualangan anak: main sendiri atau bareng teman lewat LAN
+Exec=kidsos-rpg --window
+Icon=applications-games
+Terminal=false
+Categories=Game;RolePlaying;

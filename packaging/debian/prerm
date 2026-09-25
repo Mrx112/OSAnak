@@ -3,10 +3,14 @@
 set -e
 
 case "$1" in
+    upgrade)
+        find /opt/kidsos -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
+        ;;
     remove|deconfigure)
         if [ -x /usr/sbin/kidsos-setup ]; then
             /usr/sbin/kidsos-setup disable || true
         fi
+        find /opt/kidsos -name __pycache__ -type d -exec rm -rf {} + 2>/dev/null || true
         ;;
 esac
 

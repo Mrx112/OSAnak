@@ -151,6 +151,9 @@ MENU_ITEMS = [
     {"emoji": "🦖", "title": "Petualangan Dinosaurus", "subtitle": "Lompat, lari & kumpulkan bintang!",
      "color": "#7EDFD0", "shade": "#35AE9B", "command": "kidsos:dino",
      "wide": True},                                        # rentang semua kolom
+    {"emoji": "🏰", "title": "Legenda Kristal Pelangi",
+     "subtitle": "Petualangan RPG • main bareng teman (LAN)",
+     "color": "#FFB0BE", "shade": "#E0405E", "command": "kidsos:rpg", "wide": True},
 ]
 
 
@@ -1459,7 +1462,8 @@ class KidsLauncher(QWidget):
     def _populate_menu(self):
         """(Ulang) isi grid; kartu "wide" merentang semua kolom.
 
-        2 kolom untuk menu pendek, 3 kolom jika lebih dari 7 kartu.
+        2 kolom untuk menu pendek, 3 kolom jika lebih dari 7 kartu. Dua kartu
+        "wide" yang berurutan berbagi satu baris (hemat tempat di 640x480).
         """
         while self.grid.count():
             widget = self.grid.takeAt(0).widget()
@@ -1469,16 +1473,27 @@ class KidsLauncher(QWidget):
         for c in range(3):
             self.grid.setColumnStretch(c, 1 if c < cols else 0)
         row = col = 0
+        wide_row = None                     # baris "wide" yang masih muat 1 kartu
         for item in self.menu_items:
             card = CardButton(item, self.scale * (0.85 if cols == 3 else 1.0))
             # Default argument mengikat item saat ini (hindari bug closure).
             card.clicked.connect(lambda _c=False, it=item: self._on_card(it))
             if item.get("wide"):
+                if wide_row is not None:
+                    wide_row.addWidget(card, 1)
+                    wide_row = None
+                    continue
                 if col != 0:
                     row, col = row + 1, 0
-                self.grid.addWidget(card, row, 0, 1, cols)
+                box = QWidget()
+                wide_row = QHBoxLayout(box)
+                wide_row.setContentsMargins(0, 0, 0, 0)
+                wide_row.setSpacing(self.grid.horizontalSpacing())
+                wide_row.addWidget(card, 1)
+                self.grid.addWidget(box, row, 0, 1, cols)
                 row += 1
             else:
+                wide_row = None
                 self.grid.addWidget(card, row, col)
                 col += 1
                 if col == cols:
