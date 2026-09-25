@@ -16,7 +16,7 @@ import os
 import tarfile
 import time
 
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PKG = os.path.join(ROOT, "packaging")

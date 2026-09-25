@@ -12,7 +12,7 @@ Orang tua tetap bisa mengatur sistem lewat **Mode Admin** berpassword.
 - **Langsung ke menu anak** setelah boot: login otomatis, tanpa desktop, dengan `Alt+Tab`, `Alt+F4`, `Ctrl+Alt+F1..F12` dan kombinasi sejenis diblokir.
 - **10 aktivitas bawaan**, semuanya jalan tanpa internet dan tanpa aplikasi tambahan.
 - **Suara di mana-mana**: bunyi "pop" di setiap tombol, musik latar yang berbeda di tiap menu, efek benar/salah, suara hewan, dan teks dibacakan dalam bahasa Indonesia (espeak-ng). Musik bisa dimatikan dengan tombol 🎵.
-- **Menu boot dan animasi boot** bertema anak.
+- **Menu boot dan animasi boot** bertema anak (opsional, `BOOT_VISUALS=on`; default mati selama tahap uji).
 - **Ringan untuk PC lama**: menu anak memakai resolusi default **640×480** (60 Hz, hanya jika
   didukung monitor). Admin bisa mengubahnya lewat Panel Admin → 🖥️ Resolusi.
 - **Menu boot pemulihan**: *KidsOS - Mode Aman*, *Mode Aman Grafis (nomodeset)*, dan *antiX biasa*.
@@ -67,8 +67,8 @@ Setiap jawaban benar memberi ⭐, dan setiap kelipatan 5 bintang ada perayaan ke
 ```sh
 git clone https://github.com/Mrx112/OSAnak.git
 cd OSAnak
-python3 packaging/build_deb.py                  # -> dist/kidsos_1.2.1_all.deb
-sudo apt install ./dist/kidsos_1.2.1_all.deb
+python3 packaging/build_deb.py                  # -> dist/kidsos_1.2.2_all.deb
+sudo apt install ./dist/kidsos_1.2.2_all.deb
 sudo reboot
 ```
 
@@ -77,7 +77,21 @@ Selama instalasi kamu akan diminta membuat **password Mode Admin**. Installer ak
 1. Membuat user `anak` (tanpa password dan tanpa sudo) yang login otomatis di tty1.
 2. Mematikan layar login dan desktop, lalu menjalankan menu anak sebagai satu-satunya tampilan.
 3. Membuat semua suara dan musik (sekali saja, sekitar 1 menit).
-4. Memasang tema menu boot GRUB dan animasi boot.
+4. Menyiapkan menu boot: GRUB standar antiX (parameter `vga=`, `video=`, dan `splash` dibuang,
+   `GRUB_GFXPAYLOAD_LINUX` dinonaktifkan) + menu pemulihan, lalu `update-grub`.
+
+### Tahap uji di VirtualBox
+
+Secara default KidsOS **tidak** mengubah tampilan boot maupun Xorg, agar tidak bentrok dengan
+adapter grafis VirtualBox (VMSVGA/VBoxSVGA):
+
+| Pengaturan di `/etc/kidsos/kidsos.conf` | `off` (default) | `on` |
+|---|---|---|
+| `BOOT_VISUALS` | GRUB standar, tanpa animasi boot | tema GRUB (gfxterm) + animasi boot di framebuffer |
+| `XORG_LOCK` | tidak ada file di `/etc/X11` | `xorg.conf.d/90-kidsos.conf`: blokir `Ctrl+Alt+F1..F12` & `Ctrl+Alt+Backspace` |
+
+Setelah mengubah nilainya, jalankan `sudo kidsos-setup enable`. Nyalakan `XORG_LOCK=on` lagi sebelum
+dipakai anak di komputer asli, karena tanpa itu anak bisa pindah ke konsol teks.
 
 > Semua perubahan bisa dikembalikan dengan `sudo kidsos-setup disable` atau `sudo apt remove kidsos`.
 
@@ -110,8 +124,8 @@ Selama instalasi kamu akan diminta membuat **password Mode Admin**. Installer ak
    yang ditolak monitor, display manager yang bentrok, dan lainnya.
 3. Perbarui ke versi terbaru:
    ```sh
-   wget https://raw.githubusercontent.com/Mrx112/OSAnak/main/kidsos_1.2.1_all.deb
-   sudo apt install ./kidsos_1.2.1_all.deb && sudo reboot
+   wget https://raw.githubusercontent.com/Mrx112/OSAnak/main/kidsos_1.2.2_all.deb
+   sudo apt install ./kidsos_1.2.2_all.deb && sudo reboot
    ```
    Jika menu anak hanya berhasil di Mode Aman, pilih **Panel Admin → 🖥️ Resolusi → Otomatis**.
    Untuk kembali ke antiX biasa: `sudo kidsos-setup disable && sudo reboot`.

@@ -65,6 +65,11 @@ ADMIN_USER=""
 REPO_URL=https://github.com/Mrx112/OSAnak
 REPO_BRANCH=main
 RESOLUTION=640x480
+# Tahap uji (VirtualBox): tanpa tema GRUB/gfxterm, tanpa animasi boot di
+# framebuffer, dan tanpa file di /etc/X11. Set "on" di kidsos.conf untuk
+# mengaktifkannya lagi, lalu jalankan: sudo kidsos-setup enable
+BOOT_VISUALS=off
+XORG_LOCK=off
 [ -r "$CONF" ] && . "$CONF"
 KID_USER=${KIDSOS_USER:-$KID_USER}
 [ -n "$ADMIN_USER" ] || ADMIN_USER=$(guess_admin)
@@ -80,8 +85,14 @@ ADMIN_USER=$ADMIN_USER
 # Sumber "Upgrade KidsOS" di Panel Admin.
 REPO_URL=$REPO_URL
 REPO_BRANCH=$REPO_BRANCH
-# Resolusi layar menu anak & menu boot (WxH atau auto); diubah di Panel Admin.
+# Resolusi layar menu anak (WxH atau auto); diubah di Panel Admin.
 RESOLUTION=$RESOLUTION
+# on = tema menu boot GRUB (gfxterm) + animasi boot di framebuffer.
+# off = GRUB & boot standar antiX (disarankan untuk VirtualBox).
+BOOT_VISUALS=$BOOT_VISUALS
+# on = /etc/X11/xorg.conf.d/90-kidsos.conf (blokir Ctrl+Alt+F1..F12 & Ctrl+Alt+Backspace).
+# off = tidak ada konfigurasi Xorg dari KidsOS; Xorg memakai driver standar.
+XORG_LOCK=$XORG_LOCK
 EOF
     chmod 644 "$CONF"
 }
@@ -252,6 +263,14 @@ disable_display_managers() {
 }
 
 setup_xorg() {
+    # Default (XORG_LOCK=off): KidsOS TIDAK menulis apa pun ke /etc/X11, dan
+    # sisa versi lama dihapus, agar Xorg memilih driver standar sendiri
+    # (VirtualBox VMSVGA/VBoxSVGA -> vmware/modesetting).
+    if [ "$XORG_LOCK" != on ]; then
+        rm -f "$XORG_CONF"
+        return 0
+    fi
+    # File ini TIDAK memilih driver; hanya mengunci pindah konsol & Ctrl+Alt+Backspace.
     mkdir -p "$(dirname "$XORG_CONF")"
     cat > "$XORG_CONF" <<'EOF'
 # KidsOS: anak tidak bisa pindah ke konsol teks atau mematikan X.
@@ -287,11 +306,44 @@ setup_sounds() {
 
 setup_grub() {
     if [ ! -f /etc/default/grub ] || ! command -v update-grub >/dev/null 2>&1; then
-        warn "GRUB tidak ditemukan; tema menu boot dilewati"
+        warn "GRUB tidak ditemukan; pengaturan menu boot dilewati"
         return 0
     fi
-    say "Memasang tema menu boot (GRUB)..."
+    # Selalu mulai dari GRUB bersih: buang blok KidsOS lama (tema, gfxterm,
+    # "quiet"), tema lama, dan parameter grafis kustom.
+    sed -i "/^$MARK_BEGIN\$/,/^$MARK_END\$/d" /etc/default/grub
     rm -rf "$GRUB_THEME_DIR"
+    sanitize_grub_defaults
+    if [ "$BOOT_VISUALS" = on ]; then
+        install_grub_theme
+    else
+        say "Menu boot: GRUB standar (tanpa tema/gfxterm, parameter kernel standar)."
+    fi
+    install_grub_safe_entries
+    say "Memperbarui GRUB (update-grub)..."
+    update-grub >/dev/null 2>&1 || warn "update-grub gagal; periksa /etc/default/grub"
+}
+
+# Buang parameter grafis kustom dari baris kernel di /etc/default/grub:
+# vga=..., video=..., splash / splash=... . GRUB_GFXPAYLOAD_LINUX (mode
+# grafis GRUB diteruskan ke kernel) dinonaktifkan dengan komentar "#KidsOS#".
+# Salinan asli disimpan sekali di /etc/kidsos/grub.orig (dipulihkan "disable").
+sanitize_grub_defaults() {
+    local f=/etc/default/grub
+    [ -f "$CONF_DIR/grub.orig" ] || cp -a "$f" "$CONF_DIR/grub.orig"
+    sed -i -E \
+        -e '/^GRUB_CMDLINE_LINUX(_DEFAULT)?=/{
+              s/(["[:space:]])(vga|video)=[^"[:space:]]*/\1/g
+              s/(["[:space:]])splash(=[^"[:space:]]*)?/\1/g
+              s/[[:space:]]+/ /g
+              s/=" /="/
+              s/ "$/"/
+            }' \
+        -e 's/^(GRUB_GFXPAYLOAD_LINUX=.*)$/#KidsOS# \1/' "$f"
+}
+
+install_grub_theme() {
+    say "Memasang tema menu boot (GRUB)..."
     mkdir -p "$GRUB_THEME_DIR"
     cp "$ASSETS"/grub/* "$GRUB_THEME_DIR"/
 
@@ -325,7 +377,8 @@ setup_grub() {
                 >/dev/null 2>&1 || true
         done
     fi
-    sed -i "/^$MARK_BEGIN\$/,/^$MARK_END\$/d" /etc/default/grub
+    # Hanya tampilan menu GRUB; baris kernel (GRUB_CMDLINE_LINUX_DEFAULT)
+    # sengaja TIDAK diubah.
     cat >> /etc/default/grub <<EOF
 $MARK_BEGIN
 # Tema menu boot KidsOS (dihapus oleh: kidsos-setup disable)
@@ -337,11 +390,8 @@ GRUB_TIMEOUT_STYLE=menu
 unset GRUB_TERMINAL
 GRUB_TERMINAL_OUTPUT=gfxterm
 GRUB_GFXMODE=auto
-GRUB_CMDLINE_LINUX_DEFAULT="\$GRUB_CMDLINE_LINUX_DEFAULT quiet"
 $MARK_END
 EOF
-    install_grub_safe_entries
-    update-grub >/dev/null 2>&1 || warn "update-grub gagal; periksa /etc/default/grub"
 }
 
 # Menu boot tambahan untuk pemulihan tanpa mengetik apa pun:
@@ -386,6 +436,11 @@ EOF
 }
 
 setup_bootanim() {
+    remove_bootanim
+    if [ "$BOOT_VISUALS" != on ]; then
+        say "Animasi boot (framebuffer) dinonaktifkan."
+        return 0
+    fi
     if [ ! -r /sys/class/graphics/fb0/virtual_size ]; then
         warn "framebuffer tidak tersedia; animasi boot dilewati"
         return 0
@@ -438,13 +493,21 @@ EOF
 
 remove_boot() {
     rm -f "$GRUB_SAFE"
-    if [ -f /etc/default/grub ] && grep -q "^$MARK_BEGIN\$" /etc/default/grub; then
-        sed -i "/^$MARK_BEGIN\$/,/^$MARK_END\$/d" /etc/default/grub
+    if [ -f "$CONF_DIR/grub.orig" ]; then
+        cp -a "$CONF_DIR/grub.orig" /etc/default/grub   # berisi vga=/splash asli jika ada
+        rm -f "$CONF_DIR/grub.orig"
+    elif [ -f /etc/default/grub ]; then
+        sed -i -e "/^$MARK_BEGIN\$/,/^$MARK_END\$/d" -e 's/^#KidsOS# //' /etc/default/grub
     fi
     if command -v update-grub >/dev/null 2>&1; then
         update-grub >/dev/null 2>&1 || true
     fi
-    rm -rf "$GRUB_THEME_DIR" /var/lib/kidsos/bootanim
+    rm -rf "$GRUB_THEME_DIR"
+    remove_bootanim
+}
+
+remove_bootanim() {
+    rm -rf /var/lib/kidsos/bootanim
     if [ -f "$BOOTANIM_INIT" ]; then
         update-rc.d -f kidsos-bootanim remove >/dev/null 2>&1 || true
         rm -f "$BOOTANIM_INIT"
@@ -546,6 +609,16 @@ cmd_log() {
         [ -f "$f" ] && { echo "-- $f"; grep -E '\(EE\)' "$f" | tail -n 15; }
     done
     echo
+    echo "== Kernel & grafis =="
+    echo "cmdline boot ini : $(cat /proc/cmdline 2>/dev/null)"
+    grep -E '^#?(#KidsOS# )?GRUB_(CMDLINE_LINUX(_DEFAULT)?|GFXPAYLOAD_LINUX|GFXMODE|TERMINAL_OUTPUT)=' \
+        /etc/default/grub 2>/dev/null || true
+    echo "Konfigurasi Xorg : $(ls /etc/X11/xorg.conf /etc/X11/xorg.conf.d/*.conf 2>/dev/null | tr '\n' ' ')"
+    for f in "$home/.local/share/xorg/Xorg.0.log" /var/log/Xorg.0.log; do
+        [ -f "$f" ] && grep -E 'LoadModule: "(vmware|modesetting|vesa|fbdev|vboxvideo)"|Using (config|default)' "$f" | tail -n 6
+    done
+    lspci 2>/dev/null | grep -iE 'vga|display' || true
+    echo
     echo "== Display manager yang masih berjalan (bentrok dengan KidsOS) =="
     for dm in $DMS; do
         if pgrep -x "$dm" >/dev/null 2>&1; then echo "  $dm MASIH BERJALAN"; fi
@@ -566,6 +639,7 @@ cmd_status() {
     echo "Admin       : $ADMIN_USER"
     echo "Repository  : $REPO_URL ($REPO_BRANCH)"
     echo "Resolusi    : $RESOLUTION"
+    echo "Tampilan boot: $BOOT_VISUALS   Kunci Xorg: $XORG_LOCK"
     echo "Password    : $([ -s "$HASH_FILE" ] && echo 'diatur' || echo 'BELUM (default admin123)')"
     echo "Status      : $([ -f "$CONF_DIR/enabled" ] && echo AKTIF || echo nonaktif)"
 }
