@@ -63,6 +63,7 @@ KID_USER=anak
 ADMIN_USER=""
 REPO_URL=https://github.com/Mrx112/OSAnak
 REPO_BRANCH=main
+RESOLUTION=640x480
 [ -r "$CONF" ] && . "$CONF"
 KID_USER=${KIDSOS_USER:-$KID_USER}
 [ -n "$ADMIN_USER" ] || ADMIN_USER=$(guess_admin)
@@ -78,6 +79,8 @@ ADMIN_USER=$ADMIN_USER
 # Sumber "Upgrade KidsOS" di Panel Admin.
 REPO_URL=$REPO_URL
 REPO_BRANCH=$REPO_BRANCH
+# Resolusi layar menu anak & menu boot (WxH atau auto); diubah di Panel Admin.
+RESOLUTION=$RESOLUTION
 EOF
     chmod 644 "$CONF"
 }
@@ -287,11 +290,32 @@ setup_grub() {
         return 0
     fi
     say "Memasang tema menu boot (GRUB)..."
+    rm -rf "$GRUB_THEME_DIR"
     mkdir -p "$GRUB_THEME_DIR"
     cp "$ASSETS"/grub/* "$GRUB_THEME_DIR"/
+
+    # Resolusi menu boot mengikuti RESOLUTION; ukuran huruf tema diskalakan
+    # dari desain 1080p agar tetap muat di layar kecil (mis. 640x480).
+    local gfx=auto h=1080 t i sm ih pad sp
+    if [ "$RESOLUTION" != auto ]; then
+        gfx="$RESOLUTION,auto"
+        h=${RESOLUTION#*x}
+    fi
+    t=$(( 28 * h / 1080 ));   [ "$t" -lt 12 ] && t=12
+    i=$(( 22 * h / 1080 ));   [ "$i" -lt 11 ] && i=11
+    sm=$(( 18 * h / 1080 ));  [ "$sm" -lt 10 ] && sm=10
+    ih=$(( 42 * h / 1080 ));  [ "$ih" -lt 22 ] && ih=22
+    pad=$(( 14 * h / 1080 )); [ "$pad" -lt 6 ] && pad=6
+    sp=$(( 8 * h / 1080 ));   [ "$sp" -lt 3 ] && sp=3
+    sed -i -e "s/DejaVu Sans Bold 28/DejaVu Sans Bold $t/" \
+           -e "s/DejaVu Sans Bold 22/DejaVu Sans Bold $i/g" \
+           -e "s/DejaVu Sans Bold 18/DejaVu Sans Bold $sm/" \
+           -e "s/item_height = 42/item_height = $ih/" \
+           -e "s/item_padding = 14/item_padding = $pad/" \
+           -e "s/item_spacing = 8/item_spacing = $sp/" "$GRUB_THEME_DIR/theme.txt"
     local font=/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf sz
     if command -v grub-mkfont >/dev/null 2>&1 && [ -f "$font" ]; then
-        for sz in 18 22 28; do
+        for sz in $(printf '%s\n' "$t" "$i" "$sm" | sort -u); do
             grub-mkfont -s "$sz" -o "$GRUB_THEME_DIR/dejavu-bold-$sz.pf2" "$font" \
                 >/dev/null 2>&1 || true
         done
@@ -302,12 +326,12 @@ $MARK_BEGIN
 # Tema menu boot KidsOS (dihapus oleh: kidsos-setup disable)
 GRUB_THEME="$GRUB_THEME_DIR/theme.txt"
 GRUB_BACKGROUND=""
-GRUB_DISTRIBUTOR="KidsOS (antiX)"
+GRUB_DISTRIBUTOR="KidsOS"
 GRUB_TIMEOUT=5
 GRUB_TIMEOUT_STYLE=menu
 unset GRUB_TERMINAL
 GRUB_TERMINAL_OUTPUT=gfxterm
-GRUB_GFXMODE=auto
+GRUB_GFXMODE=$gfx
 GRUB_CMDLINE_LINUX_DEFAULT="\$GRUB_CMDLINE_LINUX_DEFAULT quiet"
 $MARK_END
 EOF
@@ -491,6 +515,7 @@ cmd_status() {
     echo "User anak   : $KID_USER $(id "$KID_USER" >/dev/null 2>&1 && echo '(ada)' || echo '(belum ada)')"
     echo "Admin       : $ADMIN_USER"
     echo "Repository  : $REPO_URL ($REPO_BRANCH)"
+    echo "Resolusi    : $RESOLUTION"
     echo "Password    : $([ -s "$HASH_FILE" ] && echo 'diatur' || echo 'BELUM (default admin123)')"
     echo "Status      : $([ -f "$CONF_DIR/enabled" ] && echo AKTIF || echo nonaktif)"
 }

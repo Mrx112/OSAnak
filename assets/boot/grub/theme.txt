@@ -16,8 +16,8 @@ message-color: "#3B2F5C"
 }
 
 + boot_menu {
-    left = 30%
-    width = 40%
+    left = 28%
+    width = 44%
     top = 16%
     height = 22%
     item_font = "DejaVu Sans Bold 22"
@@ -37,7 +37,7 @@ message-color: "#3B2F5C"
     width = 46%
     top = 41%
     align = "center"
-    text = "Mulai otomatis dalam %d detik  -  Enter = mulai sekarang"
+    text = "Mulai dalam %d detik - Enter = mulai"
     font = "DejaVu Sans Bold 18"
     color = "#6B5A93"
 }

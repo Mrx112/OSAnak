@@ -355,16 +355,73 @@ def check_linux_login(auth):
     return run_helper(auth, "check-auth", timeout=60)
 
 
-def default_admin_user():
-    """ADMIN_USER dari /etc/kidsos/kidsos.conf (dibuat kidsos-setup)."""
+def read_conf(key, default):
+    """Nilai dari /etc/kidsos/kidsos.conf (dibuat kidsos-setup)."""
     try:
         with open("/etc/kidsos/kidsos.conf", encoding="utf-8") as f:
             for line in f:
-                if line.startswith("ADMIN_USER="):
-                    return line.split("=", 1)[1].strip() or "root"
+                if line.startswith(key + "="):
+                    return line.split("=", 1)[1].strip() or default
     except OSError:
         pass
-    return "root"
+    return default
+
+
+def default_admin_user():
+    return read_conf("ADMIN_USER", "root")
+
+
+# Resolusi layar: default 640x480 (ringan); admin bisa mengubah di Panel Admin.
+# Nilainya disimpan root di /etc/kidsos/kidsos.conf (RESOLUTION=...) dan
+# dipakai kidsos-session (xrandr) serta menu boot GRUB.
+RES_RE = re.compile(r"^\d{3,4}x\d{3,4}$")
+FALLBACK_RESOLUTIONS = ["640x480", "800x600", "1024x768", "1280x720", "1366x768", "1920x1080"]
+
+
+def current_resolution():
+    return read_conf("RESOLUTION", "640x480")
+
+
+def _xrandr(*args):
+    try:
+        return subprocess.run(["xrandr", *args], capture_output=True, text=True,
+                              timeout=10, stdin=subprocess.DEVNULL)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+
+
+def available_resolutions():
+    """Resolusi yang didukung monitor (dari xrandr), kecil ke besar."""
+    out = _xrandr()
+    modes = []
+    if out is not None and out.returncode == 0:
+        for line in out.stdout.splitlines():
+            m = re.match(r"^\s+(\d{3,4}x\d{3,4})\s", line)
+            if m and m[1] not in modes:
+                modes.append(m[1])
+    if not modes:
+        modes = list(FALLBACK_RESOLUTIONS)
+    modes.sort(key=lambda r: tuple(int(v) for v in r.split("x")))
+    return modes[:11]
+
+
+def apply_resolution(res):
+    """Ubah resolusi X sekarang juga (sebagai user anak, tanpa root)."""
+    if DEV_MODE:
+        print(f"[KidsOS] (dev) resolusi tidak diubah: {res}", file=sys.stderr)
+        return True
+    if res == "auto":
+        out = _xrandr()
+        if out is None or out.returncode != 0:
+            return False
+        ok = True
+        for line in out.stdout.splitlines():
+            if " connected" in line:
+                r = _xrandr("--output", line.split()[0], "--auto")
+                ok = ok and r is not None and r.returncode == 0
+        return ok
+    r = _xrandr("-s", res)
+    return r is not None and r.returncode == 0
 
 
 def update_menu(url, progress, auth=None):
@@ -784,6 +841,7 @@ class AdminPanel(Overlay):
     repository = pyqtSignal()
     update = pyqtSignal()
     upgrade = pyqtSignal()
+    resolution = pyqtSignal()
     reboot = pyqtSignal()
     poweroff = pyqtSignal()
 
@@ -801,6 +859,7 @@ class AdminPanel(Overlay):
         self.button_row(
             self.make_button("🖥️ Desktop Admin", "btnInfo", act(self.desktop)),
             self.make_button("💻 Terminal", "btnInfo", act(self.terminal)),
+            self.make_button("🖥️ Resolusi", "btnInfo", act(self.resolution)),
         )
         self.button_row(
             self.make_button("📦 Repository", "btnOk", act(self.repository)),
@@ -924,6 +983,44 @@ class LoginDialog(Overlay):
         self.error.setText("User/password salah, atau bukan admin 🙅")
         self.poke()
         self._shake()
+
+
+class ResolutionDialog(Overlay):
+    """Admin memilih resolusi layar (berlaku untuk menu anak & menu boot)."""
+
+    chosen = pyqtSignal(str)
+
+    def __init__(self, parent, scale):
+        super().__init__(parent, scale, accent="#8FD6FF", timeout_ms=60_000, width=700)
+        self.add_label("🖥️ Resolusi Layar", "dlgTitle", wrap=False)
+        self.add_label("Resolusi kecil = lebih ringan. Berlaku untuk menu anak "
+                       "& menu boot.", "dlgInfo")
+        self.current = self.add_label("", "dlgInfo")
+        self.grid = QGridLayout()
+        self.grid.setSpacing(self.px(10))
+        self.body.addLayout(self.grid)
+        self.button_row(self.make_button("Batal", "btnCancel", self.close_dialog))
+
+    def on_open(self):
+        while self.grid.count():
+            w = self.grid.takeAt(0).widget()
+            if w is not None:
+                w.deleteLater()
+        now = current_resolution()
+        self.current.setText(f"Sekarang: {'Otomatis' if now == 'auto' else now}")
+        modes = available_resolutions()
+        for i, res in enumerate(modes + ["auto"]):
+            text = "✨ Otomatis (terbaik)" if res == "auto" else res.replace("x", " × ")
+            btn = self.make_button(text, "btnOk" if res == now else "btnInfo",
+                                   lambda _c=False, r=res: self._pick(r))
+            if res == "auto":                     # satu baris penuh di bawah
+                self.grid.addWidget(btn, (len(modes) + 2) // 3, 0, 1, 3)
+            else:
+                self.grid.addWidget(btn, i // 3, i % 3)
+
+    def _pick(self, res):
+        self.finish()
+        self.chosen.emit(res)
 
 
 class RepoDialog(Overlay):
@@ -1123,9 +1220,11 @@ class KidsLauncher(QWidget):
         self.setObjectName("root")
         self.setAttribute(Qt.WA_StyledBackground, True)
 
-        # Skala UI mengikuti tinggi layar (acuan 768px, umum di laptop lama).
+        # Skala UI mengikuti ukuran layar (acuan 1024x768). Lebar ikut dihitung
+        # agar tetap muat di layar kecil seperti 640x480.
         screen = QApplication.primaryScreen().geometry()
-        self.scale = max(0.6, min(screen.height() / 768.0, 2.2))
+        self.scale = max(0.45, min(screen.height() / 768.0, screen.width() / 1024.0, 2.2))
+        self.compact = screen.width() < 900
 
         self._build_ui()
 
@@ -1172,7 +1271,7 @@ class KidsLauncher(QWidget):
                             stop:0 #FFF6E5, stop:0.5 #FFEFF6, stop:1 #E9F6FF);
             }}
             QLabel {{ background: transparent; color: {TEXT_DARK}; }}
-            QLabel#header    {{ font-size: {px(48)}px; font-weight: 900; }}
+            QLabel#header    {{ font-size: {px(34 if self.compact else 48)}px; font-weight: 900; }}
             QLabel#subheader {{ font-size: {px(22)}px; font-weight: 600;
                                 color: rgba(59, 47, 92, 160); }}
             QPushButton#adminBtn {{
@@ -1259,12 +1358,16 @@ class KidsLauncher(QWidget):
 
         header_box = QVBoxLayout()
         header_box.setSpacing(0)
-        header = QLabel("🌈 Dunia Bermain & Belajar 🎈")
+        # Layar sempit (mis. 640x480): judul ringkas & boleh terlipat.
+        header = QLabel("Dunia Bermain & Belajar" if self.compact
+                        else "🌈 Dunia Bermain & Belajar 🎈")
         header.setObjectName("header")
         header.setAlignment(Qt.AlignCenter)
+        header.setWordWrap(True)
         sub = QLabel("Pilih permainan kesukaanmu! 👇")
         sub.setObjectName("subheader")
         sub.setAlignment(Qt.AlignCenter)
+        sub.setWordWrap(True)
         header_box.addWidget(header)
         header_box.addWidget(sub)
 
@@ -1323,8 +1426,14 @@ class KidsLauncher(QWidget):
         self.admin_panel.upgrade.connect(
             lambda: self.login_dialog.ask(self._upgrade_self))
 
+        self.res_dialog = ResolutionDialog(self, s)
+        self.admin_panel.resolution.connect(self.res_dialog.open_dialog)
+        self.res_dialog.chosen.connect(
+            lambda res: self.login_dialog.ask(
+                lambda auth: self._set_resolution(res, auth)))
+
         self.overlays = (self.admin_dialog, self.admin_panel, self.power_dialog,
-                         self.repo_dialog, self.login_dialog)
+                         self.repo_dialog, self.login_dialog, self.res_dialog)
 
     def _populate_menu(self):
         """(Ulang) isi grid; kartu "wide" merentang semua kolom.
@@ -1545,6 +1654,26 @@ class KidsLauncher(QWidget):
 
         self._run_worker(lambda emit: upgrade_self(emit, auth),
                          lambda t: self._show_toast(t, 60_000), done)
+
+    def _set_resolution(self, res, auth):
+        """Simpan resolusi (root, lewat helper) lalu terapkan & mulai ulang menu."""
+        label = "Otomatis" if res == "auto" else res
+
+        def work(emit):
+            emit(f"🖥️ Mengubah resolusi ke {label}...")
+            if not run_helper(auth, "set-resolution", res, timeout=600):
+                return False, "😅 Gagal menyimpan resolusi."
+            if not apply_resolution(res):
+                return True, f"✅ Tersimpan ({label}); berlaku setelah komputer dinyalakan ulang."
+            return True, f"✅ Resolusi diubah ke {label}."
+
+        def done(ok, msg):
+            self._worker = None
+            self._show_toast(msg, 5000)
+            if ok and SESSION_MODE:
+                QTimer.singleShot(1500, self._restart)   # susun ulang tampilan
+
+        self._run_worker(work, lambda t: self._show_toast(t, 60_000), done)
 
     def _restart(self):
         self._leave(EXIT_RESTART)

@@ -13,6 +13,8 @@ Orang tua tetap bisa mengatur sistem lewat **Mode Admin** berpassword.
 - **10 aktivitas bawaan**, semuanya jalan tanpa internet dan tanpa aplikasi tambahan.
 - **Suara di mana-mana**: bunyi "pop" di setiap tombol, musik latar yang berbeda di tiap menu, efek benar/salah, suara hewan, dan teks dibacakan dalam bahasa Indonesia (espeak-ng). Musik bisa dimatikan dengan tombol 🎵.
 - **Menu boot dan animasi boot** bertema anak.
+- **Ringan untuk PC lama**: resolusi default **640×480** (menu anak dan menu boot). Admin bisa
+  mengubahnya lewat Panel Admin → 🖥️ Resolusi.
 - **Mode Admin**: Desktop Admin (IceWM), terminal, repository menu, update dan upgrade.
 - **Update aman**: update dan upgrade wajib memakai login akun admin Linux (root atau anggota grup `sudo`).
 - **Menu bisa ditambah dari repository**: cukup edit `menu.json` dan `content/` di repo ini, lalu tekan **Update Menu**.
@@ -36,9 +38,11 @@ Orang tua tetap bisa mengatur sistem lewat **Mode Admin** berpassword.
 
 ### Mode Admin
 
-| Password Mode Admin | Panel Admin | Repository menu | Login untuk update |
-|---|---|---|---|
-| ![](docs/screenshots/19-mode-admin.png) | ![](docs/screenshots/20-panel-admin.png) | ![](docs/screenshots/21-repository.png) | ![](docs/screenshots/22-login-linux.png) |
+| Password Mode Admin | Panel Admin | Repository menu |
+|---|---|---|
+| ![](docs/screenshots/19-mode-admin.png) | ![](docs/screenshots/20-panel-admin.png) | ![](docs/screenshots/21-repository.png) |
+| **Login untuk update** | **Resolusi layar** | **Menu anak di 640×480** |
+| ![](docs/screenshots/22-login-linux.png) | ![](docs/screenshots/24-resolusi.png) | ![](docs/screenshots/25-menu-640x480.png) |
 
 ## 🎮 Isi aktivitas
 
@@ -62,8 +66,8 @@ Setiap jawaban benar memberi ⭐, dan setiap kelipatan 5 bintang ada perayaan ke
 ```sh
 git clone https://github.com/Mrx112/OSAnak.git
 cd OSAnak
-python3 packaging/build_deb.py                  # -> dist/kidsos_1.1.1_all.deb
-sudo apt install ./dist/kidsos_1.1.1_all.deb
+python3 packaging/build_deb.py                  # -> dist/kidsos_1.2.0_all.deb
+sudo apt install ./dist/kidsos_1.2.0_all.deb
 sudo reboot
 ```
 
@@ -101,8 +105,8 @@ Selama instalasi kamu akan diminta membuat **password Mode Admin**. Installer ak
    ini menampilkan penyebabnya: error tampilan (Xorg), display manager yang bentrok, dan lainnya.
 3. Perbarui ke versi terbaru:
    ```sh
-   wget https://raw.githubusercontent.com/Mrx112/OSAnak/main/kidsos_1.1.1_all.deb
-   sudo apt install ./kidsos_1.1.1_all.deb && sudo reboot
+   wget https://raw.githubusercontent.com/Mrx112/OSAnak/main/kidsos_1.2.0_all.deb
+   sudo apt install ./kidsos_1.2.0_all.deb && sudo reboot
    ```
    Untuk kembali ke antiX biasa: `sudo kidsos-setup disable && sudo reboot`.
 
@@ -115,12 +119,13 @@ Tekan **🔒 Mode Admin** di kiri atas, lalu masukkan password untuk membuka **P
 
 - **🖥️ Desktop Admin**: membuka desktop IceWM. Setelah logout, kembali ke menu anak.
 - **💻 Terminal**
+- **🖥️ Resolusi**: pilih resolusi layar (default 640×480), atau Otomatis. Berlaku untuk menu anak dan menu boot.
 - **📦 Repository**: link repo menu (default: repo ini), dan pilihan update otomatis setiap komputer menyala.
 - **⬇️ Update Menu**: mengunduh `menu.json` dan `content/` dari repo, lalu otomatis memasang aplikasi yang dibutuhkan.
 - **⬆️ Upgrade**: memperbarui program KidsOS dari repo ini.
 - **🔄 Mulai Ulang / ⏻ Matikan**
 
-Update dan upgrade meminta **login akun Linux** (root atau anggota grup `sudo`). Password
+Update, upgrade, dan perubahan resolusi meminta **login akun Linux** (root atau anggota grup `sudo`). Password
 diperiksa oleh sistem (`unix_chkpwd`) melalui helper root, jadi anak tidak bisa memasang apa pun
 walaupun berhasil membuka terminal.
 

@@ -20,7 +20,7 @@ SRC = os.path.join(ROOT, "Content Foto")
 OUT = os.path.join(ROOT, "assets", "boot")
 GRUB = os.path.join(OUT, "grub")
 
-W, H = 1920, 1080
+W, H = 1280, 720          # cukup untuk semua resolusi & lebih ringan untuk GRUB
 # Kartu menu (dalam persen layar) - harus cocok dengan theme.txt di bawah.
 CARD = (0.27, 0.05, 0.73, 0.47)
 TEXT = "#3B2F5C"
@@ -43,8 +43,8 @@ message-color: "#3B2F5C"
 }
 
 + boot_menu {
-    left = 30%
-    width = 40%
+    left = 28%
+    width = 44%
     top = 16%
     height = 22%
     item_font = "DejaVu Sans Bold 22"
@@ -64,7 +64,7 @@ message-color: "#3B2F5C"
     width = 46%
     top = 41%
     align = "center"
-    text = "Mulai otomatis dalam %d detik  -  Enter = mulai sekarang"
+    text = "Mulai dalam %d detik - Enter = mulai"
     font = "DejaVu Sans Bold 18"
     color = "#6B5A93"
 }
@@ -81,14 +81,14 @@ def background():
     x0, y0, x1, y1 = (int(CARD[0] * W), int(CARD[1] * H), int(CARD[2] * W), int(CARD[3] * H))
     # Bayangan lembut + kartu putih transparan agar tulisan menu terbaca.
     shadow = Image.new("L", (W, H), 0)
-    ImageDraw.Draw(shadow).rounded_rectangle((x0 + 8, y0 + 12, x1 + 8, y1 + 12), 46, fill=90)
-    shadow = shadow.filter(ImageFilter.GaussianBlur(18))
+    ImageDraw.Draw(shadow).rounded_rectangle((x0 + 6, y0 + 8, x1 + 6, y1 + 8), 30, fill=90)
+    shadow = shadow.filter(ImageFilter.GaussianBlur(12))
     img = Image.composite(Image.new("RGB", (W, H), "#3B2F5C"), img, shadow)
 
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     d = ImageDraw.Draw(overlay)
-    d.rounded_rectangle((x0, y0, x1, y1), 46, fill=(255, 255, 255, 222),
-                        outline=(255, 175, 212, 255), width=8)
+    d.rounded_rectangle((x0, y0, x1, y1), 30, fill=(255, 255, 255, 222),
+                        outline=(255, 175, 212, 255), width=6)
     img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
     img.save(os.path.join(GRUB, "background.jpg"), quality=90, optimize=True)
 

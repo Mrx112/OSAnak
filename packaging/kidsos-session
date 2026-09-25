@@ -14,7 +14,23 @@
 LAUNCHER=/opt/kidsos/main.py
 CONF=/etc/kidsos/kidsos.conf
 ADMIN_USER=root
+RESOLUTION=640x480          # default ringan; diubah admin lewat Panel Admin
 [ -r "$CONF" ] && . "$CONF"
+
+# Resolusi layar sesuai pengaturan admin (RESOLUTION=WxH atau auto).
+apply_resolution() {
+    command -v xrandr >/dev/null 2>&1 || return 0
+    if [ "$RESOLUTION" = auto ]; then
+        for out in $(xrandr | awk '/ connected/ {print $1}'); do
+            xrandr --output "$out" --auto 2>/dev/null
+        done
+    elif ! xrandr -s "$RESOLUTION" 2>/dev/null; then
+        out=$(xrandr | awk '/ connected/ {print $1; exit}')
+        [ -n "$out" ] && xrandr --output "$out" --mode "$RESOLUTION" 2>/dev/null
+    fi
+    return 0
+}
+apply_resolution
 
 # Layar tidak boleh mati/blank sendiri; buang Ctrl+Alt+Backspace (matikan X).
 xset s off -dpms s noblank 2>/dev/null

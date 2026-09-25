@@ -4,6 +4,7 @@
 #   kidsos-pkg check-auth         hanya periksa login admin
 #   kidsos-pkg install PAKET...   pasang paket apt yang dibutuhkan menu
 #   kidsos-pkg upgrade-self       perbarui KidsOS dari repository resmi
+#   kidsos-pkg set-resolution R   simpan resolusi (WxH / auto) + menu boot
 #
 # SETIAP perintah wajib membawa login akun admin Linux lewat stdin:
 #   baris 1 = username, baris 2 = password
@@ -104,8 +105,20 @@ cmd_upgrade_self() {
     echo "KidsOS diperbarui dari $raw"
 }
 
+cmd_set_resolution() {
+    res="${1:-}"
+    printf '%s' "$res" | grep -qE '^([0-9]{3,4}x[0-9]{3,4}|auto)$' || die "resolusi tidak valid: $res"
+    if grep -q '^RESOLUTION=' "$CONF"; then
+        sed -i "s/^RESOLUTION=.*/RESOLUTION=$res/" "$CONF"
+    else
+        echo "RESOLUTION=$res" >> "$CONF"
+    fi
+    /usr/sbin/kidsos-setup boot >/dev/null 2>&1 || true   # menu boot ikut berubah
+    echo "Resolusi disimpan: $res"
+}
+
 case "${1:-}" in
-    check-auth|install|upgrade-self) require_admin "$@" ;;
+    check-auth|install|upgrade-self|set-resolution) require_admin "$@" ;;
     *) die "perintah tidak dikenal: ${1:-}" ;;
 esac
 
@@ -113,4 +126,5 @@ case "$1" in
     check-auth) exit 0 ;;
     install) shift; cmd_install "$@" ;;
     upgrade-self) cmd_upgrade_self ;;
+    set-resolution) cmd_set_resolution "${2:-}" ;;
 esac

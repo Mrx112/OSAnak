@@ -217,7 +217,9 @@ class Activity(QWidget):
         self.up_btn = kid_button("◀ Kembali", GREY, px, font=22, height=58)
         self.up_btn.clicked.connect(self.go_up)
         self.up_btn.hide()
-        self.title = make_label(title, px(40), 900, wrap=False)
+        # Judul boleh terlipat & tidak memaksa lebar (penting di layar 640x480).
+        self.title = make_label(title, px(36), 900)
+        self.title.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Preferred)
         self.stars = make_label("", px(30), 900, wrap=False)
         # Lebar kolom kanan = kolom kiri, agar judul tetap di tengah.
         side = self.home_btn.sizeHint().width() + self.up_btn.sizeHint().width() + px(12)
