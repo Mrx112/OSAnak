@@ -13,8 +13,9 @@ Orang tua tetap bisa mengatur sistem lewat **Mode Admin** berpassword.
 - **10 aktivitas bawaan**, semuanya jalan tanpa internet dan tanpa aplikasi tambahan.
 - **Suara di mana-mana**: bunyi "pop" di setiap tombol, musik latar yang berbeda di tiap menu, efek benar/salah, suara hewan, dan teks dibacakan dalam bahasa Indonesia (espeak-ng). Musik bisa dimatikan dengan tombol 🎵.
 - **Menu boot dan animasi boot** bertema anak.
-- **Ringan untuk PC lama**: resolusi default **640×480** (menu anak dan menu boot). Admin bisa
-  mengubahnya lewat Panel Admin → 🖥️ Resolusi.
+- **Ringan untuk PC lama**: menu anak memakai resolusi default **640×480** (60 Hz, hanya jika
+  didukung monitor). Admin bisa mengubahnya lewat Panel Admin → 🖥️ Resolusi.
+- **Menu boot pemulihan**: *KidsOS - Mode Aman*, *Mode Aman Grafis (nomodeset)*, dan *antiX biasa*.
 - **Mode Admin**: Desktop Admin (IceWM), terminal, repository menu, update dan upgrade.
 - **Update aman**: update dan upgrade wajib memakai login akun admin Linux (root atau anggota grup `sudo`).
 - **Menu bisa ditambah dari repository**: cukup edit `menu.json` dan `content/` di repo ini, lalu tekan **Update Menu**.
@@ -66,8 +67,8 @@ Setiap jawaban benar memberi ⭐, dan setiap kelipatan 5 bintang ada perayaan ke
 ```sh
 git clone https://github.com/Mrx112/OSAnak.git
 cd OSAnak
-python3 packaging/build_deb.py                  # -> dist/kidsos_1.2.0_all.deb
-sudo apt install ./dist/kidsos_1.2.0_all.deb
+python3 packaging/build_deb.py                  # -> dist/kidsos_1.2.1_all.deb
+sudo apt install ./dist/kidsos_1.2.1_all.deb
 sudo reboot
 ```
 
@@ -93,25 +94,30 @@ Selama instalasi kamu akan diminta membuat **password Mode Admin**. Installer ak
 **Jalan darurat:** di menu GRUB tekan `e`, tambahkan `kidsos=off` di akhir baris `linux`, lalu tekan
 `Ctrl+X`. Komputer akan masuk ke login teks biasa.
 
-## 🆘 Jika macet setelah menu boot
+## 🆘 Jika macet atau layar hitam setelah boot
 
-1. Di menu GRUB tekan `e`, lalu edit teksnya:
-   - hapus baris `set gfxpayload=keep` (kalau ada),
-   - di baris yang diawali `linux`, hapus `quiet loglevel=3 vt.global_cursor_default=0`, lalu
-     tambahkan `kidsos=off` di akhir baris.
+1. Nyalakan ulang komputer. Di menu boot, pilih dengan tombol panah:
+   - **KidsOS - Mode Aman (resolusi otomatis)**: menu anak memakai resolusi bawaan monitor, dan
+     pesan boot terlihat. Coba ini dulu.
+   - **KidsOS - Mode Aman Grafis (nomodeset)**: jika layar masih hitam. Driver grafis kernel
+     dimatikan (tampilan lebih lambat, tetapi hampir selalu jalan).
+   - **antiX biasa (tanpa KidsOS)**: login teks biasa untuk perbaikan.
 
-   Tekan `Ctrl+X`. Pesan boot akan terlihat, dan komputer berhenti di login teks.
-2. Tekan `Ctrl+Alt+F2`, login dengan akun admin, lalu jalankan `sudo kidsos-setup log`. Perintah
-   ini menampilkan penyebabnya: error tampilan (Xorg), display manager yang bentrok, dan lainnya.
+   Menu ini ada sejak versi 1.2.1. Untuk versi lama: tekan `e` di menu boot, tambahkan
+   `kidsos=off` di akhir baris yang diawali `linux`, lalu tekan `Ctrl+X`.
+2. Login dengan akun admin (dari *antiX biasa*, atau `Ctrl+Alt+F2`), lalu jalankan
+   `sudo kidsos-setup log`. Perintah ini menampilkan penyebabnya: error tampilan (Xorg), resolusi
+   yang ditolak monitor, display manager yang bentrok, dan lainnya.
 3. Perbarui ke versi terbaru:
    ```sh
-   wget https://raw.githubusercontent.com/Mrx112/OSAnak/main/kidsos_1.2.0_all.deb
-   sudo apt install ./kidsos_1.2.0_all.deb && sudo reboot
+   wget https://raw.githubusercontent.com/Mrx112/OSAnak/main/kidsos_1.2.1_all.deb
+   sudo apt install ./kidsos_1.2.1_all.deb && sudo reboot
    ```
+   Jika menu anak hanya berhasil di Mode Aman, pilih **Panel Admin → 🖥️ Resolusi → Otomatis**.
    Untuk kembali ke antiX biasa: `sudo kidsos-setup disable && sudo reboot`.
 
-Sejak versi 1.1.1, kalau tampilan menu gagal 3 kali berturut-turut, layar menampilkan petunjuk ini
-(tidak lagi terlihat macet).
+Kalau tampilan menu gagal 3 kali berturut-turut, layar menampilkan petunjuk ini (tidak lagi
+terlihat macet).
 
 ## 🔒 Mode Admin
 
@@ -119,7 +125,7 @@ Tekan **🔒 Mode Admin** di kiri atas, lalu masukkan password untuk membuka **P
 
 - **🖥️ Desktop Admin**: membuka desktop IceWM. Setelah logout, kembali ke menu anak.
 - **💻 Terminal**
-- **🖥️ Resolusi**: pilih resolusi layar (default 640×480), atau Otomatis. Berlaku untuk menu anak dan menu boot.
+- **🖥️ Resolusi**: pilih resolusi menu anak (default 640×480), atau Otomatis. Menu boot selalu memakai resolusi bawaan monitor.
 - **📦 Repository**: link repo menu (default: repo ini), dan pilihan update otomatis setiap komputer menyala.
 - **⬇️ Update Menu**: mengunduh `menu.json` dan `content/` dari repo, lalu otomatis memasang aplikasi yang dibutuhkan.
 - **⬆️ Upgrade**: memperbarui program KidsOS dari repo ini.

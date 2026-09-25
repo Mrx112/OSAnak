@@ -91,7 +91,8 @@ cmd_upgrade_self() {
     done
 
     # Tolak file rusak / bukan Python sebelum menimpa versi yang berjalan.
-    python3 -m py_compile "$tmp/main.py" "$tmp/activities.py" "$tmp/games.py" \n        "$tmp/sounds.py"
+    python3 -m py_compile "$tmp/main.py" "$tmp/activities.py" "$tmp/games.py" \
+        "$tmp/sounds.py"
     python3 -c 'import json,sys; json.load(open(sys.argv[1], encoding="utf-8"))' \
         "$tmp/content/cerita.json"
 

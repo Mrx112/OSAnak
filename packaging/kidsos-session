@@ -17,16 +17,52 @@ ADMIN_USER=root
 RESOLUTION=640x480          # default ringan; diubah admin lewat Panel Admin
 [ -r "$CONF" ] && . "$CONF"
 
+# Mode aman (menu boot "KidsOS - Mode Aman" / kidsos=safe): resolusi bawaan
+# monitor, tanpa diubah sama sekali.
+if tr ' ' '\n' </proc/cmdline 2>/dev/null | grep -qx 'kidsos=safe'; then
+    echo "kidsos-session: mode aman (kidsos=safe), resolusi tidak diubah" >&2
+    RESOLUTION=safe
+fi
+
 # Resolusi layar sesuai pengaturan admin (RESOLUTION=WxH atau auto).
+# Hanya memakai mode yang benar-benar didaftarkan monitor, dengan refresh
+# rate terdekat ke 60 Hz. ("xrandr -s" bisa memilih 72/75 Hz yang tidak
+# diterima banyak TV/monitor HDMI -> layar hitam "no signal".)
 apply_resolution() {
+    [ "$RESOLUTION" = safe ] && return 0
     command -v xrandr >/dev/null 2>&1 || return 0
+    q=$(xrandr -q 2>/dev/null) || return 0
+    out=$(printf '%s\n' "$q" | awk '$2 == "connected" && $3 == "primary" {print $1; exit}')
+    [ -n "$out" ] || out=$(printf '%s\n' "$q" | awk '$2 == "connected" {print $1; exit}')
+    if [ -z "$out" ]; then
+        echo "kidsos-session: xrandr tidak menemukan layar; resolusi tidak diubah" >&2
+        return 0
+    fi
     if [ "$RESOLUTION" = auto ]; then
-        for out in $(xrandr | awk '/ connected/ {print $1}'); do
-            xrandr --output "$out" --auto 2>/dev/null
-        done
-    elif ! xrandr -s "$RESOLUTION" 2>/dev/null; then
-        out=$(xrandr | awk '/ connected/ {print $1; exit}')
-        [ -n "$out" ] && xrandr --output "$out" --mode "$RESOLUTION" 2>/dev/null
+        xrandr --output "$out" --auto 2>/dev/null
+        return 0
+    fi
+    rate=$(printf '%s\n' "$q" | awk -v out="$out" -v res="$RESOLUTION" '
+        $2 == "connected" || $2 == "disconnected" { inout = ($1 == out); next }
+        inout && $1 == res {
+            best = ""; bd = 1000
+            for (i = 2; i <= NF; i++) {
+                r = $i; gsub(/[*+]/, "", r)
+                if (r == "") continue
+                d = r - 60; if (d < 0) d = -d
+                if (d < bd) { bd = d; best = r }
+            }
+            print best; exit
+        }')
+    if [ -z "$rate" ]; then
+        echo "kidsos-session: $RESOLUTION tidak didukung layar $out; resolusi tidak diubah" >&2
+        return 0
+    fi
+    if xrandr --output "$out" --mode "$RESOLUTION" --rate "$rate" 2>/dev/null; then
+        echo "kidsos-session: layar $out -> $RESOLUTION @ $rate Hz" >&2
+    else
+        echo "kidsos-session: gagal mengubah $out ke $RESOLUTION; kembali ke bawaan" >&2
+        xrandr --output "$out" --auto 2>/dev/null
     fi
     return 0
 }

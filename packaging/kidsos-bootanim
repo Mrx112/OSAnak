@@ -121,8 +121,9 @@ def xorg_running():
 def play():
     try:
         with open("/proc/cmdline") as f:
-            if "kidsos=off" in f.read().split():
-                return          # mode darurat: jangan tutupi layar teks
+            args = f.read().split()
+        if "kidsos=off" in args or "kidsos=safe" in args:
+            return              # mode darurat/aman: pesan boot harus terlihat
         w, h, bpp, stride = fb_info()
     except OSError:
         return

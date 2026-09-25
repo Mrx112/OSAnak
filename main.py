@@ -420,7 +420,28 @@ def apply_resolution(res):
                 r = _xrandr("--output", line.split()[0], "--auto")
                 ok = ok and r is not None and r.returncode == 0
         return ok
-    r = _xrandr("-s", res)
+    # Sama seperti kidsos-session: hanya mode yang didaftarkan monitor, dengan
+    # refresh rate terdekat ke 60 Hz ("xrandr -s" bisa memilih 75 Hz -> hitam).
+    out = _xrandr()
+    if out is None or out.returncode != 0:
+        return False
+    output, rate, current = None, None, None
+    for line in out.stdout.splitlines():
+        parts = line.split()
+        if len(parts) >= 2 and parts[1] in ("connected", "disconnected"):
+            if output is not None:
+                break                       # hanya layar terhubung pertama
+            current = parts[0] if parts[1] == "connected" else None
+            output = current
+            continue
+        if current and parts and parts[0] == res:
+            rates = [float(r) for r in (p.strip("*+") for p in parts[1:])
+                     if re.fullmatch(r"\d+(\.\d+)?", r)]
+            if rates:
+                rate = min(rates, key=lambda r: abs(r - 60))
+    if output is None or rate is None:
+        return False
+    r = _xrandr("--output", output, "--mode", res, "--rate", f"{rate:.2f}")
     return r is not None and r.returncode == 0
 
 

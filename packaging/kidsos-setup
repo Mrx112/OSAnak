@@ -38,6 +38,7 @@ BOOTANIM=/usr/lib/kidsos/kidsos-bootanim
 INSTALL_DIR=/opt/kidsos
 ASSETS=$INSTALL_DIR/assets/boot
 GRUB_THEME_DIR=/boot/grub/themes/kidsos
+GRUB_SAFE=/etc/grub.d/42_kidsos_safe
 BOOTANIM_INIT=/etc/init.d/kidsos-bootanim
 BOOTANIM_UNIT=/etc/systemd/system/kidsos-bootanim.service
 MARK_BEGIN="# >>> KidsOS >>>"
@@ -294,12 +295,16 @@ setup_grub() {
     mkdir -p "$GRUB_THEME_DIR"
     cp "$ASSETS"/grub/* "$GRUB_THEME_DIR"/
 
-    # Resolusi menu boot mengikuti RESOLUTION; ukuran huruf tema diskalakan
-    # dari desain 1080p agar tetap muat di layar kecil (mis. 640x480).
-    local gfx=auto h=1080 t i sm ih pad sp
-    if [ "$RESOLUTION" != auto ]; then
-        gfx="$RESOLUTION,auto"
-        h=${RESOLUTION#*x}
+    # Menu boot SELALU memakai resolusi bawaan monitor (GRUB_GFXMODE=auto).
+    # Memaksa 640x480 di GRUB (versi 1.2.0) bisa terbawa ke kernel dan
+    # membuat layar hitam saat driver grafis mengambil alih. RESOLUTION hanya
+    # dipakai untuk tampilan menu anak (kidsos-session). Ukuran huruf tema
+    # diskalakan dari desain 1080p ke tinggi layar saat ini.
+    local h=1080 t i sm ih pad sp fbh
+    if [ -r /sys/class/graphics/fb0/virtual_size ]; then
+        fbh=$(cut -d, -f2 /sys/class/graphics/fb0/virtual_size 2>/dev/null || echo 1080)
+        case "$fbh" in ''|*[!0-9]*) fbh=1080 ;; esac
+        [ "$fbh" -ge 480 ] && [ "$fbh" -lt 1080 ] && h=$fbh
     fi
     t=$(( 28 * h / 1080 ));   [ "$t" -lt 12 ] && t=12
     i=$(( 22 * h / 1080 ));   [ "$i" -lt 11 ] && i=11
@@ -331,11 +336,53 @@ GRUB_TIMEOUT=5
 GRUB_TIMEOUT_STYLE=menu
 unset GRUB_TERMINAL
 GRUB_TERMINAL_OUTPUT=gfxterm
-GRUB_GFXMODE=$gfx
+GRUB_GFXMODE=auto
 GRUB_CMDLINE_LINUX_DEFAULT="\$GRUB_CMDLINE_LINUX_DEFAULT quiet"
 $MARK_END
 EOF
+    install_grub_safe_entries
     update-grub >/dev/null 2>&1 || warn "update-grub gagal; periksa /etc/default/grub"
+}
+
+# Menu boot tambahan untuk pemulihan tanpa mengetik apa pun:
+#   KidsOS - Mode Aman              resolusi bawaan monitor, pesan boot terlihat
+#   KidsOS - Mode Aman Grafis       + nomodeset (driver grafis kernel dimatikan)
+#   antiX biasa (tanpa KidsOS)      kidsos=off -> login teks biasa
+install_grub_safe_entries() {
+    cat > "$GRUB_SAFE" <<'EOF'
+#!/bin/sh
+# KidsOS: menu boot pemulihan (dibuat oleh kidsos-setup; dihapus oleh "disable").
+set -e
+. "${pkgdatadir:-/usr/share/grub}/grub-mkconfig_lib"
+
+linux=$(ls -1 /boot/vmlinuz-* 2>/dev/null | sort -V | tail -n 1)
+[ -n "$linux" ] || exit 0
+version=${linux#/boot/vmlinuz-}
+rel_dir=$(make_system_path_relative_to_its_root /boot)
+initrd=""
+for i in "initrd.img-$version" "initrd-$version.img" "initrd-$version"; do
+    if [ -f "/boot/$i" ]; then initrd=$i; break; fi
+done
+if [ -z "${GRUB_DEVICE_UUID:-}" ] || [ "${GRUB_DISABLE_LINUX_UUID:-}" = true ]; then
+    root_arg="root=${GRUB_DEVICE}"
+else
+    root_arg="root=UUID=${GRUB_DEVICE_UUID}"
+fi
+access=$(prepare_grub_to_access_device "${GRUB_DEVICE_BOOT}" | sed 's/^/\t/')
+
+entry() {
+    echo "menuentry '$1' --class gnu-linux --class os {"
+    printf '%s\n' "$access"
+    echo "	echo 'Memuat Linux $version ...'"
+    echo "	linux ${rel_dir}/vmlinuz-${version} ${root_arg} ro ${GRUB_CMDLINE_LINUX:-} $2"
+    [ -n "$initrd" ] && echo "	initrd ${rel_dir}/${initrd}"
+    echo "}"
+}
+entry "KidsOS - Mode Aman (resolusi otomatis)" "kidsos=safe"
+entry "KidsOS - Mode Aman Grafis (nomodeset)" "kidsos=safe nomodeset"
+entry "antiX biasa (tanpa KidsOS)" "kidsos=off"
+EOF
+    chmod 755 "$GRUB_SAFE"
 }
 
 setup_bootanim() {
@@ -390,8 +437,11 @@ EOF
 }
 
 remove_boot() {
+    rm -f "$GRUB_SAFE"
     if [ -f /etc/default/grub ] && grep -q "^$MARK_BEGIN\$" /etc/default/grub; then
         sed -i "/^$MARK_BEGIN\$/,/^$MARK_END\$/d" /etc/default/grub
+    fi
+    if command -v update-grub >/dev/null 2>&1; then
         update-grub >/dev/null 2>&1 || true
     fi
     rm -rf "$GRUB_THEME_DIR" /var/lib/kidsos/bootanim
